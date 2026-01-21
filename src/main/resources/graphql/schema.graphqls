@@ -1,0 +1,184 @@
+type Query {
+    #user
+    userById(userId: ID!): UserResponseDTO
+    allUsers(page: Int, size: Int): UserPageDTO
+
+    #categories
+    categoryById(categoryId: ID!): CategoryResponseDTO
+    allCategories(page: Int!, size: Int!): CategoryPageDTO
+
+    #products
+    productById(productId: ID!) : ProductResponseDTO
+    allProducts(page: Int!, size: Int!) : ProductsPageDTO
+
+    cartItemById(cartId: ID!): CartItemResponse
+    orderById(orderId: ID!): OrderResponseDTO
+    reviewsByProduct(productId: ID!): [ReviewResponseDTO!]!
+
+}
+
+type Mutation {
+    #user
+    createUser(input: UserDTO!): UserResponseDTO
+    updateUser(userId: ID!, input: UserDTO!): UserResponseDTO
+    deleteUser(userId: ID!): Boolean
+
+    # Categories
+    createCategory(input: CategoryDTO!): CategoryResponseDTO
+    updateCategory(categoryId: ID!, input: CategoryDTO!): CategoryResponseDTO
+    deleteCategory(categoryId: ID!): Boolean
+
+    #Products
+    createProduct(input: ProductDTO!) : ProductResponseDTO
+    updateProduct(productId: ID!, input: ProductDTO!): ProductResponseDTO
+    deleteProduct(productId: ID!) : Boolean
+
+    #CartItem
+    createCartItem(input: CartItemDTO!): CartItemResponse
+    updateCartItem(cartId: ID!, input: CartItemDTO!): CartItemResponse
+    deleteCartItem(cartId: ID!): Boolean
+
+    #Order
+    createOrder(input: OrderDTO!): OrderResponseDTO
+    updateOrder(orderId: ID!, input: OrderDTO!): OrderResponseDTO
+    deleteOrder(orderId: ID!): Boolean
+
+    #Review
+    addReview(input: ReviewDTO!): ReviewResponseDTO
+    updateReview(reviewId: ID!, rating: Int!, comment: String): ReviewResponseDTO
+    deleteReview(reviewId: ID!): Boolean
+}
+
+#inputs
+input UserDTO {
+    fullName: String!
+    email: String!
+    password: String!
+    role: String
+}
+
+input CategoryDTO {
+    categoryName: String!
+}
+
+input ProductDTO{
+    productName: String!
+    price: Float!
+    stock: Int!
+    categoryId: String!
+}
+
+input CartItemDTO {
+    productId: ID!
+    quantity: Int!
+}
+
+input OrderItemDTO {
+    itemId: ID
+    productId: ID!
+    quantity: Int!
+    price: Float!
+}
+
+enum OrderStatus {
+    PENDING
+    PAID
+    SHIPPED
+    DELIVERED
+    CANCELLED
+}
+
+input OrderDTO {
+    userId: ID!
+    status: OrderStatus!
+    items: [OrderItemDTO!]!
+}
+
+
+input ReviewDTO {
+    productId: ID!
+    userId: ID!
+    rating: Int!
+    comment: String
+}
+
+#response
+type UserResponseDTO {
+    userId: ID!
+    fullName: String!
+    email: String!
+    role: String!
+    createdAt: String!
+}
+
+type CategoryResponseDTO {
+    categoryId: ID!
+    categoryName: String!
+}
+
+type ProductResponseDTO{
+    productId : String!
+    productName : String!
+    price : Float!
+    stock : Int!
+    inventoryId : String!
+    categoryId : String!
+    createdAt : String!
+}
+
+type CartItemResponse {
+    cartId: ID!
+    productId: ID!
+    quantity: Int!
+}
+
+type OrderItemResponseDTO {
+    itemId: ID!
+    orderId: ID!
+    productId: ID!
+    quantity: Int!
+    price: Float!
+}
+
+type OrderResponseDTO {
+    orderId: ID!
+    total: Float!
+    status: String!
+    userId: ID!
+    orderDate: String!
+    items: [OrderItemResponseDTO!]!
+}
+
+type ReviewResponseDTO {
+    reviewId: ID!
+    productId: ID!
+    userId: ID!
+    rating: Int!
+    comment: String
+    createdAt: String!
+}
+
+# Page
+type UserPageDTO {
+    users: [UserResponseDTO]!
+    totalElements: Int!
+    totalPages: Int!
+    page: Int!
+    size: Int!
+}
+
+type CategoryPageDTO {
+    categories: [CategoryResponseDTO]!
+    totalElements: Int!
+    totalPages: Int!
+    page: Int!
+    size: Int!
+}
+
+type ProductsPageDTO {
+    products: [ProductResponseDTO]!
+    totalElements: Int!
+    totalPages: Int!
+    page: Int!
+    size: Int!
+}
