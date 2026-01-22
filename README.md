@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is a smart e-commerce backend system built with modern Spring technologies. It serves as a feature-rich platform demonstrating advanced Spring concepts in a practical, real-world context. The project implements a complete e-commerce system with user management, product catalog, orders, and payment processing.
+This is a smart e-commerce backend system built with modern Spring technologies. It serves as a feature-rich platform demonstrating advanced Spring concepts in a practical, real-world context. The project implements a complete e-commerce system with user management, product catalog, and orders.
 
 ## Key Features
 
@@ -14,10 +14,9 @@ This is a smart e-commerce backend system built with modern Spring technologies.
 
 ## Technology Stack
 
-- **Java 17** - Core programming language
-- **Spring Boot 3.x** - Application framework
+- **Java 21** - Core programming language
+- **Spring Boot 4.x** - Application framework
 - **Spring Data JPA** - Database persistence
-- **Spring Security** - Authentication and authorization
 - **GraphQL** - Alternative API layer
 - **H2 Database** - In-memory database for development
 - **Maven** - Dependency management
@@ -28,7 +27,7 @@ This is a smart e-commerce backend system built with modern Spring technologies.
 ### Prerequisites
 
 Before you begin, make sure you have:
-- JDK 17 or higher installed
+- JDK 21 or higher installed
 - Maven 3.6 or higher
 - Your favorite IDE (IntelliJ IDEA, Eclipse, or VS Code)
 
@@ -62,13 +61,15 @@ The project follows a standard Spring Boot layered architecture:
 
 ```
 src/main/java/com/smart/ecommerce/
-├── controller/     # REST and GraphQL endpoints
+├── controller/rest/    # REST GraphQL endpoints
 ├── service/        # Business logic layer
 ├── repository/     # Data access layer
 ├── model/          # Entity classes
 ├── dto/            # Data transfer objects
 ├── config/         # Application configuration
 └── aspect/         # AOP components
+├── graphql         # GraphQL endpoints
+├── exception        #Exception Handling
 ```
 
 ## Environment Profiles
@@ -92,6 +93,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - `GET /api/products/{id}` - Get specific product details
 - `POST /api/orders` - Create a new order
 - `GET /api/users/{userId}/orders` - Get user's order history
+And more.
 
 ### GraphQL Endpoint
 
@@ -103,12 +105,10 @@ The project demonstrates practical AOP usage through:
 
 - **Logging Aspect**: Automatic method invocation logging
 - **Performance Monitoring**: Execution time tracking for critical methods
-- **Transaction Management**: Consistent transaction handling
-- **Security Auditing**: Method-level security audit trails
 
 ## Development Notes
 
-The project includes a comprehensive implementation of an e-commerce domain model with entities for User, Product, Order, OrderItem, and Payment. The code demonstrates best practices in Spring development including proper layering, dependency injection, and exception handling.
+The project includes a comprehensive implementation of an e-commerce domain model with entities for User, Product, Order, and OrderItem. The code demonstrates best practices in Spring development including proper layering, dependency injection, and exception handling.
 
 ## Contributing
 
