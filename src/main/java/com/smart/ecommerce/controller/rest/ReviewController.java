@@ -24,52 +24,62 @@ public class ReviewController {
     @PostMapping
     @Operation(summary = "Add review")
     public ResponseEntity<ReviewResponseDTO> addReview(@RequestBody ReviewDTO dto) {
-        Review review = reviewService.addReview(dto);
-        return ResponseEntity.ok(toResponse(review));
+        ReviewResponseDTO response = reviewService.addReview(dto);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
     @Operation(summary = "Get all reviews with pagination")
     public ResponseEntity<Page<ReviewResponseDTO>> getAllReviews(Pageable pageable) {
         Page<ReviewResponseDTO> reviews = reviewService.getAllReviews(pageable)
-                .map(this::toResponse);
+                .map(r -> new ReviewResponseDTO(
+                        r.getReviewId(),
+                        r.getProductId(),
+                        r.getUserId(),
+                        r.getRating(),
+                        r.getComment(),
+                        r.getCreatedAt()
+                ));
         return ResponseEntity.ok(reviews);
     }
-
 
     @GetMapping("/product/{productId}")
     @Operation(summary = "Get reviews by product")
     public ResponseEntity<List<ReviewResponseDTO>> getReviewsByProduct(@PathVariable String productId) {
         List<ReviewResponseDTO> reviews = reviewService.getReviewsByProductId(productId)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream()
+                .map(r -> new ReviewResponseDTO(
+                        r.getReviewId(),
+                        r.getProductId(),
+                        r.getUserId(),
+                        r.getRating(),
+                        r.getComment(),
+                        r.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
         return ResponseEntity.ok(reviews);
     }
-
 
     @PutMapping("/{reviewId}")
     @Operation(summary = "Update review")
     public ResponseEntity<ReviewResponseDTO> updateReview(@PathVariable String reviewId,
                                                           @RequestBody ReviewDTO dto) {
         Review updated = reviewService.updateReview(reviewId, dto.getRating(), dto.getComment());
-        return ResponseEntity.ok(toResponse(updated));
+        ReviewResponseDTO response = new ReviewResponseDTO(
+                updated.getReviewId(),
+                updated.getProductId(),
+                updated.getUserId(),
+                updated.getRating(),
+                updated.getComment(),
+                updated.getCreatedAt()
+        );
+        return ResponseEntity.ok(response);
     }
-
 
     @DeleteMapping("/{reviewId}")
     @Operation(summary = "Delete review")
     public ResponseEntity<Void> deleteReview(@PathVariable String reviewId) {
         reviewService.deleteReview(reviewId);
         return ResponseEntity.noContent().build();
-    }
-
-    private ReviewResponseDTO toResponse(Review review) {
-        return new ReviewResponseDTO(
-                review.getReviewId(),
-                review.getProductId(),
-                review.getUserId(),
-                review.getRating(),
-                review.getComment(),
-                review.getCreatedAt()
-        );
     }
 }
