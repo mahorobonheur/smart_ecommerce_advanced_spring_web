@@ -39,7 +39,7 @@ public class OrderController {
     }
 
     @PutMapping("{orderId}")
-    public ResponseEntity<OrderResponseDTO> updateOrder(@PathVariable UUID orderId, OrderDTO dto){
+    public ResponseEntity<OrderResponseDTO> updateOrder(@PathVariable UUID orderId, @RequestBody OrderDTO dto){
         Order order = orderService.updateOrder(orderId, dto);
         return ResponseEntity.ok(toResponse(order));
     }

@@ -1,6 +1,7 @@
 package com.smart.ecommerce.service.implementation.dev;
 
 import com.smart.ecommerce.dto.request.ReviewDTO;
+import com.smart.ecommerce.dto.response.ReviewResponseDTO;
 import com.smart.ecommerce.model.Review;
 import com.smart.ecommerce.repository.ReviewRepository;
 import com.smart.ecommerce.service.ReviewService;
@@ -10,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -21,14 +21,12 @@ public class ReviewServiceDevImplementation implements ReviewService {
     private ReviewRepository reviewRepository;
 
     @Override
-    public Review addReview(ReviewDTO dto) {
-        Review review = new Review();
-        review.setProductId(dto.getProductId());
-        review.setUserId(dto.getUserId());
-        review.setRating(dto.getRating());
-        review.setComment(dto.getComment());
-        review.setCreatedAt(Instant.now());
-        return reviewRepository.save(review);
+    public ReviewResponseDTO addReview(ReviewDTO dto) {
+        // Create review with safe non-null ID
+        Review review = new Review(dto.getProductId(), dto.getUserId(), dto.getRating(), dto.getComment());
+        Review savedReview = reviewRepository.save(review);
+
+        return toResponse(savedReview);
     }
 
     @Override
@@ -53,5 +51,16 @@ public class ReviewServiceDevImplementation implements ReviewService {
     @Override
     public void deleteReview(String reviewId) {
         reviewRepository.deleteById(reviewId);
+    }
+
+    private ReviewResponseDTO toResponse(Review review) {
+        return new ReviewResponseDTO(
+                review.getReviewId(),
+                review.getProductId(),
+                review.getUserId(),
+                review.getRating(),
+                review.getComment(),
+                review.getCreatedAt()
+        );
     }
 }

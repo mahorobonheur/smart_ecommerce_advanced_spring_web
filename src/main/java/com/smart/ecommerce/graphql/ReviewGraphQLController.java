@@ -21,8 +21,8 @@ public class ReviewGraphQLController {
 
     @MutationMapping
     public ReviewResponseDTO addReview(@Argument ReviewDTO input) {
-        Review review = reviewService.addReview(input);
-        return toResponse(review);
+        com.smart.ecommerce.dto.response.ReviewResponseDTO dto = reviewService.addReview(input);
+        return dto;
     }
 
     @QueryMapping

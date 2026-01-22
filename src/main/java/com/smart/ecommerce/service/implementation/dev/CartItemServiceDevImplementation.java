@@ -55,6 +55,10 @@ public class CartItemServiceDevImplementation implements CartItemService {
 
     @Override
     public void deleteCart(UUID cartId) {
-        productRepository.deleteById(cartId);
+        if (!cartRepository.existsById(cartId)) {
+            throw new ResourceNotFoundException("Cart not found!");
+        }
+        cartRepository.deleteById(cartId);
     }
+
 }
