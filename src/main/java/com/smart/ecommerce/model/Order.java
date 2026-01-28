@@ -1,5 +1,6 @@
 package com.smart.ecommerce.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,9 @@ public class Order {
     @Column(name = "status", nullable = false)
     private OrderStatus status;
 
+    @Column(name = "payment_intent_id")
+    private String paymentIntentId;
+
     @Column(name = "order_date")
     private LocalDateTime orderDate;
 
@@ -36,6 +40,7 @@ public class Order {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 }

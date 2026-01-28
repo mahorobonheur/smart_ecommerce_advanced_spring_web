@@ -32,7 +32,7 @@ public class UserServiceDevImplementation implements UserService {
         user.setEmail(dto.getEmail());
         user.setPassword(dto.getPassword());
         user.setFullName(dto.getFullName());
-        user.setRole(Role.valueOf(dto.getRole()));
+        user.setRole(Role.CUSTOMER);
         user.setCreatedAt(LocalDateTime.now());
         return userRepository.save(user);
     }

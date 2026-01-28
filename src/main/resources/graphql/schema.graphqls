@@ -1,24 +1,30 @@
 type Query {
-    #user
+
+    # Users
     userById(userId: ID!): UserResponseDTO
     allUsers(page: Int, size: Int): UserPageDTO
 
-    #categories
+    # Categories
     categoryById(categoryId: ID!): CategoryResponseDTO
     allCategories(page: Int!, size: Int!): CategoryPageDTO
 
-    #products
-    productById(productId: ID!) : ProductResponseDTO
-    allProducts(page: Int!, size: Int!) : ProductsPageDTO
+    # Products
+    productById(productId: ID!): ProductResponseDTO
+    allProducts(page: Int!, size: Int!): ProductsPageDTO
 
-    cartItemById(cartId: ID!): CartItemResponse
+    # Cart
+    cartByUser(userId: ID!): CartResponse!
+
+    # Orders
     orderById(orderId: ID!): OrderResponseDTO
-    reviewsByProduct(productId: ID!): [ReviewResponseDTO!]!
 
+    # Reviews
+    reviewsByProduct(productId: ID!): [ReviewResponseDTO!]!
 }
 
 type Mutation {
-    #user
+
+    # Users
     createUser(input: UserDTO!): UserResponseDTO
     updateUser(userId: ID!, input: UserDTO!): UserResponseDTO
     deleteUser(userId: ID!): Boolean
@@ -28,28 +34,26 @@ type Mutation {
     updateCategory(categoryId: ID!, input: CategoryDTO!): CategoryResponseDTO
     deleteCategory(categoryId: ID!): Boolean
 
-    #Products
-    createProduct(input: ProductDTO!) : ProductResponseDTO
+    # Products
+    createProduct(input: ProductDTO!): ProductResponseDTO
     updateProduct(productId: ID!, input: ProductDTO!): ProductResponseDTO
-    deleteProduct(productId: ID!) : Boolean
+    deleteProduct(productId: ID!): Boolean
 
-    #CartItem
-    createCartItem(input: CartItemDTO!): CartItemResponse
-    updateCartItem(cartId: ID!, input: CartItemDTO!): CartItemResponse
-    deleteCartItem(cartId: ID!): Boolean
+    # Cart
+    addItemToCart(userId: ID!, productId: ID!, quantity: Int!): CartResponse!
+    removeItemFromCart(userId: ID!, productId: ID!): CartResponse!
+    clearCart(userId: ID!): Boolean!
 
-    #Order
-    createOrder(input: OrderDTO!): OrderResponseDTO
-    updateOrder(orderId: ID!, input: OrderDTO!): OrderResponseDTO
-    deleteOrder(orderId: ID!): Boolean
+    # Checkout & Orders
+    checkout(userId: ID!): CheckoutResponse!
+    confirmPayment(userId: ID!, paymentIntentId: String!): OrderResponseDTO!
 
-    #Review
+    # Reviews
     addReview(input: ReviewDTO!): ReviewResponseDTO
     updateReview(reviewId: ID!, rating: Int!, comment: String): ReviewResponseDTO
     deleteReview(reviewId: ID!): Boolean
 }
 
-#inputs
 input UserDTO {
     fullName: String!
     email: String!
@@ -61,23 +65,18 @@ input CategoryDTO {
     categoryName: String!
 }
 
-input ProductDTO{
+input ProductDTO {
     productName: String!
     price: Float!
     stock: Int!
     categoryId: String!
 }
 
-input CartItemDTO {
+input ReviewDTO {
     productId: ID!
-    quantity: Int!
-}
-
-input OrderItemDTO {
-    itemId: ID
-    productId: ID!
-    quantity: Int!
-    price: Float!
+    userId: ID!
+    rating: Int!
+    comment: String
 }
 
 enum OrderStatus {
@@ -88,21 +87,6 @@ enum OrderStatus {
     CANCELLED
 }
 
-input OrderDTO {
-    userId: ID!
-    status: OrderStatus!
-    items: [OrderItemDTO!]!
-}
-
-
-input ReviewDTO {
-    productId: ID!
-    userId: ID!
-    rating: Int!
-    comment: String
-}
-
-#response
 type UserResponseDTO {
     userId: ID!
     fullName: String!
@@ -116,28 +100,30 @@ type CategoryResponseDTO {
     categoryName: String!
 }
 
-type ProductResponseDTO{
-    productId : String!
-    productName : String!
-    price : Float!
-    stock : Int!
-    inventoryId : String!
-    categoryId : String!
-    createdAt : String!
+type ProductResponseDTO {
+    productId: ID!
+    productName: String!
+    price: Float!
+    stock: Int!
+    inventoryId: String!
+    categoryId: String!
+    createdAt: String!
+}
+
+type CartResponse {
+    cartId: ID!
+    userId: ID!
+    items: [CartItemResponse!]!
 }
 
 type CartItemResponse {
-    cartId: ID!
     productId: ID!
     quantity: Int!
 }
 
-type OrderItemResponseDTO {
-    itemId: ID!
-    orderId: ID!
-    productId: ID!
-    quantity: Int!
-    price: Float!
+type CheckoutResponse {
+    clientSecret: String!
+    amount: Float!
 }
 
 type OrderResponseDTO {
@@ -149,6 +135,13 @@ type OrderResponseDTO {
     items: [OrderItemResponseDTO!]!
 }
 
+type OrderItemResponseDTO {
+    itemId: ID!
+    productId: ID!
+    quantity: Int!
+    price: Float!
+}
+
 type ReviewResponseDTO {
     reviewId: ID!
     productId: ID!
@@ -158,7 +151,8 @@ type ReviewResponseDTO {
     createdAt: String!
 }
 
-# Page
+#Pagination
+
 type UserPageDTO {
     users: [UserResponseDTO]!
     totalElements: Int!

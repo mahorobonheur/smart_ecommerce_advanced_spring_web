@@ -5,6 +5,8 @@ import com.smart.ecommerce.dto.response.OrderItemResponseDTO;
 import com.smart.ecommerce.dto.response.OrderResponseDTO;
 import com.smart.ecommerce.model.Order;
 import com.smart.ecommerce.service.OrderService;
+import com.stripe.exception.StripeException;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,10 +23,24 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
-    @PostMapping
-    public ResponseEntity<OrderResponseDTO> createOrder(@RequestBody OrderDTO orderDTO){
-        Order order = orderService.createOrder(orderDTO);
-        return ResponseEntity.ok(toResponse(order));
+
+    @PostMapping("/checkout/{userId}")
+    public ResponseEntity<Map<String, Object>> checkout(
+            @PathVariable UUID userId
+    ) throws StripeException {
+
+        Map<String, Object> response = orderService.checkout(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<Order> confirmPayment(
+            @RequestParam UUID userId,
+            @RequestParam String paymentIntentId
+    ) throws StripeException {
+
+        Order order = orderService.confirmPaymentAndCreateOrder(userId, paymentIntentId);
+        return ResponseEntity.ok(order);
     }
 
     @GetMapping("{orderId}")

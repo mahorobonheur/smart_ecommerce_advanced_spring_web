@@ -55,7 +55,7 @@ public class CategoryServiceDevImplementation implements CategoryService {
     @Transactional
     public void deleteCategory(UUID categoryId) {
      if(!categoryRepository.existsById(categoryId)){
-         throw new ResourceNotFoundException("User with id " + categoryId + " is not found");
+         throw new ResourceNotFoundException("Category with id " + categoryId + " is not found");
      }
      categoryRepository.deleteById(categoryId);
     }

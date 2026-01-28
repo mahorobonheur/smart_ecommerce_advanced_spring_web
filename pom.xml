@@ -99,6 +99,12 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>31.3.0-alpha.1</version>
+            <scope>compile</scope>
+        </dependency>
 	</dependencies>
 
 	<build>
