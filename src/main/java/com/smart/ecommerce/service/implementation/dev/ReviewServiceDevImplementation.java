@@ -22,7 +22,6 @@ public class ReviewServiceDevImplementation implements ReviewService {
 
     @Override
     public ReviewResponseDTO addReview(ReviewDTO dto) {
-        // Create review with safe non-null ID
         Review review = new Review(dto.getProductId(), dto.getUserId(), dto.getRating(), dto.getComment());
         Review savedReview = reviewRepository.save(review);
 

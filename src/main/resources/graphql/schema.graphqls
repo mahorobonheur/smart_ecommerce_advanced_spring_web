@@ -17,6 +17,7 @@ type Query {
 
     # Orders
     orderById(orderId: ID!): OrderResponseDTO
+    allOrders(page: Int!, size: Int!): OrderPageDTO
 
     # Reviews
     reviewsByProduct(productId: ID!): [ReviewResponseDTO!]!
@@ -47,6 +48,8 @@ type Mutation {
     # Checkout & Orders
     checkout(userId: ID!): CheckoutResponse!
     confirmPayment(userId: ID!, paymentIntentId: String!): OrderResponseDTO!
+    updateOrder(orderId: ID!, status: OrderStatus !): OrderResponseDTO!
+    deleteOrder(orderId: ID!): Boolean
 
     # Reviews
     addReview(input: ReviewDTO!): ReviewResponseDTO
@@ -123,6 +126,7 @@ type CartItemResponse {
 
 type CheckoutResponse {
     clientSecret: String!
+    paymentIntentId: String!
     amount: Float!
 }
 
@@ -171,6 +175,14 @@ type CategoryPageDTO {
 
 type ProductsPageDTO {
     products: [ProductResponseDTO]!
+    totalElements: Int!
+    totalPages: Int!
+    page: Int!
+    size: Int!
+}
+
+type OrderPageDTO {
+    products: [OrderResponseDTO]!
     totalElements: Int!
     totalPages: Int!
     page: Int!

@@ -56,7 +56,9 @@ public class OrderController {
     }
 
     @PutMapping("{orderId}")
-    public ResponseEntity<OrderResponseDTO> updateOrder(@PathVariable UUID orderId, @RequestBody OrderDTO dto){
+    public ResponseEntity<OrderResponseDTO> updateOrder(@PathVariable UUID orderId, @RequestParam String status){
+        OrderDTO dto = new OrderDTO();
+        dto.setStatus(status);
         Order order = orderService.updateOrder(orderId, dto);
         return ResponseEntity.ok(toResponse(order));
     }

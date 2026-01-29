@@ -2,6 +2,7 @@ package com.smart.ecommerce.model;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -18,11 +19,13 @@ public class Review {
     @Id
     private String reviewId;
 
+    @NotNull(message = "Product is required to make review")
     private String productId;
+    @NotNull(message = "user is required")
     private String userId;
 
-    @Min(1)
-    @Max(5)
+    @Min(value = 1, message = "Minimum rating is 1")
+    @Max(value = 5, message = "Maximum rating is 5")
     private int rating;
 
     private String comment;

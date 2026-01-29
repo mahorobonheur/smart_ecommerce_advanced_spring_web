@@ -98,17 +98,28 @@ public class OrderServiceDevImplementation implements OrderService {
         );
     }
 
-
-
     @Override
     @Transactional
     public Order confirmPaymentAndCreateOrder(UUID userId, String paymentIntentId)
             throws StripeException {
 
+        Stripe.apiKey = stripeApiKey;
+
         PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
 
         if (!"succeeded".equals(intent.getStatus())) {
-            throw new IllegalStateException("Payment not completed");
+
+            Map<String, Object> confirmParams = new HashMap<>();
+            confirmParams.put("payment_method", "pm_card_visa");
+            confirmParams.put("return_url", "http://localhost:8080");
+
+            intent = intent.confirm(confirmParams);
+        }
+
+        if (!"succeeded".equals(intent.getStatus())) {
+            throw new IllegalStateException(
+                    "Payment not completed. Current status: " + intent.getStatus()
+            );
         }
 
         User user = userRepository.findById(userId)
@@ -175,25 +186,27 @@ public class OrderServiceDevImplementation implements OrderService {
     @Override
     public Order updateOrder(UUID orderId, OrderDTO dto) {
         Order existingOrder = getOrderById(orderId);
+        OrderStatus currentStatus = existingOrder.getStatus();
+
+        Map<OrderStatus, Set<OrderStatus>> allowedTransitions = Map.of(
+            OrderStatus.PENDING, Set.of(OrderStatus.PAID, OrderStatus.CANCELLED),
+                OrderStatus.PAID, Set.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
+                OrderStatus.SHIPPED, Set.of(),
+                OrderStatus.CANCELLED, Set.of()
+
+        );
+
+        Set<OrderStatus> allowedNext =
+                allowedTransitions.getOrDefault(currentStatus, Set.of());
+
+        if(!allowedNext.contains(OrderStatus.valueOf(dto.getStatus()))){
+            throw new IllegalStateException("Invalid order state transition "
+                    + currentStatus + " to " + dto.getStatus() );
+        }
+
+
         existingOrder.setStatus(OrderStatus.valueOf(dto.getStatus()));
         existingOrder.setOrderDate(LocalDateTime.now());
-
-        if (existingOrder.getItems() == null) {
-            existingOrder.setItems(new java.util.ArrayList<>());
-        } else {
-            existingOrder.getItems().clear();
-        }
-
-        double total = 0;
-
-        if (dto.getItems() != null) {
-            for (OrderItemDTO itemDTO : dto.getItems()) {
-                OrderItem orderItem = orderItemService.addOrderItem(itemDTO, existingOrder);
-                total += orderItem.getPrice() * orderItem.getQuantity();
-            }
-        }
-
-        existingOrder.setTotal(total);
 
         return orderRepository.save(existingOrder);
     }
