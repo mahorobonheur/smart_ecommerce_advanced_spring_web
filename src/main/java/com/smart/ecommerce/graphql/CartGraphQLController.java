@@ -6,6 +6,7 @@ import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.User;
 import com.smart.ecommerce.repository.UserRepository;
 import com.smart.ecommerce.service.CartService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -24,6 +25,7 @@ public class CartGraphQLController {
     private UserRepository userRepository;
 
     @QueryMapping
+    @Operation(summary = "GraphL: Get cart by user")
     public CartResponseDTO cartByUser(@Argument UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -31,6 +33,7 @@ public class CartGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphL: Add item to cart")
     public CartResponseDTO addItemToCart(
             @Argument UUID userId,
             @Argument UUID productId,
@@ -42,6 +45,7 @@ public class CartGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphL: Remove item from cart")
     public CartResponseDTO removeItemFromCart(
             @Argument UUID userId,
             @Argument UUID productId
@@ -52,6 +56,7 @@ public class CartGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphL: Clear cart")
     public Boolean clearCart(@Argument UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

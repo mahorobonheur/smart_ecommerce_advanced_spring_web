@@ -10,6 +10,9 @@ import com.smart.ecommerce.repository.InventoryRepository;
 import com.smart.ecommerce.repository.ProductRepository;
 import com.smart.ecommerce.service.InventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +25,7 @@ import java.util.UUID;
 @Profile("dev")
 @Transactional
 public class InventoryServiceDevImplementation implements InventoryService {
+
     @Autowired
     private InventoryRepository inventoryRepository;
 
@@ -29,6 +33,8 @@ public class InventoryServiceDevImplementation implements InventoryService {
     private ProductRepository productRepository;
 
     @Override
+    @Transactional
+    @CacheEvict(value = "inventoriesPage", allEntries = true)
     public Inventory createInventory(InventoryDTO dto) {
         if(inventoryRepository.existsByProduct_ProductId(dto.getProductId())){
             throw new DuplicateResourceException("This product already exists.");
@@ -43,6 +49,8 @@ public class InventoryServiceDevImplementation implements InventoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "inventoryById", key = "#inventoryId")
     public Inventory getInventoryById(UUID inventoryId) {
         return inventoryRepository.findById(inventoryId).orElseThrow(
                 () -> new ResourceNotFoundException("Inventory not found!")
@@ -50,6 +58,8 @@ public class InventoryServiceDevImplementation implements InventoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "inventoryByProduct", key = "#productId")
     public Inventory getInventoryByProductId(UUID productId) {
         Inventory inventory = inventoryRepository.findByProduct_ProductId(productId);
         if(inventory == null){
@@ -59,6 +69,8 @@ public class InventoryServiceDevImplementation implements InventoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "inventoriesPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<InventoryResponseDTO> allInventories(Pageable pageable) {
         return inventoryRepository.findAll(pageable).map(
                 inventory -> new InventoryResponseDTO(
@@ -72,6 +84,12 @@ public class InventoryServiceDevImplementation implements InventoryService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "inventoriesPage", allEntries = true),
+            @CacheEvict(value = "inventoryById", key = "#inventoryId"),
+            @CacheEvict(value = "inventoryByProduct", key = "#dto.productId")
+    })
     public Inventory updateInventory(UUID inventoryId, InventoryDTO dto) {
         Inventory inventory = getInventoryById(inventoryId);
         if(!inventory.getProduct().getProductId().equals(dto.getProductId())){
@@ -82,7 +100,13 @@ public class InventoryServiceDevImplementation implements InventoryService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "inventoriesPage", allEntries = true),
+            @CacheEvict(value = "inventoryById", key = "#inventoryId"),
+            @CacheEvict(value = "inventoryByProduct", key = "#inventoryRepository.findById(inventoryId).get().getProduct().getProductId()")
+    })
     public void deleteInventory(UUID inventoryId) {
-     inventoryRepository.deleteById(inventoryId);
+        inventoryRepository.deleteById(inventoryId);
     }
 }

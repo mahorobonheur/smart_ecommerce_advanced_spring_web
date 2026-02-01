@@ -1,25 +1,29 @@
 package com.smart.ecommerce.service.implementation.dev;
 
-import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.Cart;
 import com.smart.ecommerce.model.CartItem;
-import com.smart.ecommerce.model.Product;
 import com.smart.ecommerce.model.User;
 import com.smart.ecommerce.repository.CartRepository;
 import com.smart.ecommerce.service.CartService;
 import com.smart.ecommerce.service.ProductService;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Profile("dev")
 @Transactional
 public class CartServiceDevImplementation implements CartService {
 
     private final CartRepository cartRepository;
+
     @Autowired
     private ProductService productService;
 
@@ -28,6 +32,8 @@ public class CartServiceDevImplementation implements CartService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "cartByUser", key = "#user.userId")
     public Cart getCartByUser(User user) {
         return cartRepository.findByUser(user)
                 .orElseGet(() -> {
@@ -38,6 +44,8 @@ public class CartServiceDevImplementation implements CartService {
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = "cartByUser", key = "#user.userId")
     public Cart addItemToCart(User user, UUID productId, int quantity) {
 
         Cart cart = getCartByUser(user);
@@ -62,6 +70,8 @@ public class CartServiceDevImplementation implements CartService {
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = "cartByUser", key = "#user.userId")
     public Cart removeItemFromCart(User user, UUID productId) {
 
         Cart cart = getCartByUser(user);
@@ -74,10 +84,11 @@ public class CartServiceDevImplementation implements CartService {
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = "cartByUser", key = "#user.userId")
     public void clearCart(User user) {
         Cart cart = getCartByUser(user);
         cart.getItems().clear();
         cartRepository.save(cart);
     }
 }
-

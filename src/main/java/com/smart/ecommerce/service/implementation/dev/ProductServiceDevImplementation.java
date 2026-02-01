@@ -10,6 +10,9 @@ import com.smart.ecommerce.repository.ProductRepository;
 import com.smart.ecommerce.service.InventoryService;
 import com.smart.ecommerce.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +35,8 @@ public class ProductServiceDevImplementation implements ProductService {
     private CategoryRepository categoryRepository;
 
     @Override
+    @Transactional
+    @CacheEvict(value = "productsPage", allEntries = true)
     public Product addProduct(ProductDTO dto) {
         Product product = new Product();
         product.setProductName(dto.getProductName());
@@ -50,6 +55,8 @@ public class ProductServiceDevImplementation implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "productById", key = "#productId")
     public Product getProductById(UUID productId) {
         return productRepository.findById(productId).orElseThrow(
                 () -> new ResourceNotFoundException("Product not found")
@@ -57,11 +64,18 @@ public class ProductServiceDevImplementation implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "productsPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Product> allProducts(Pageable pageable) {
         return productRepository.findAll(pageable);
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "productsPage", allEntries = true),
+            @CacheEvict(value = "productById", key = "#productId")
+    })
     public Product updateProduct(UUID productId, ProductDTO dto) {
         Product existingProduct = getProductById(productId);
         existingProduct.setPrice(dto.getPrice());
@@ -80,6 +94,11 @@ public class ProductServiceDevImplementation implements ProductService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "productsPage", allEntries = true),
+            @CacheEvict(value = "productById", key = "#productId")
+    })
     public void deleteProduct(UUID productId) {
         if(!productRepository.existsById(productId)){
             throw new ResourceNotFoundException("Product not found.");

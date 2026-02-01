@@ -4,6 +4,7 @@ import com.smart.ecommerce.dto.request.ReviewDTO;
 import com.smart.ecommerce.dto.response.ReviewResponseDTO;
 import com.smart.ecommerce.model.Review;
 import com.smart.ecommerce.service.ReviewService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -20,12 +21,14 @@ public class ReviewGraphQLController {
     private ReviewService reviewService;
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Add review")
     public ReviewResponseDTO addReview(@Argument ReviewDTO input) {
         com.smart.ecommerce.dto.response.ReviewResponseDTO dto = reviewService.addReview(input);
         return dto;
     }
 
     @QueryMapping
+    @Operation(summary = "GraphQL: Reviews By Product")
     public List<ReviewResponseDTO> reviewsByProduct(@Argument String productId) {
         return reviewService.getReviewsByProductId(productId)
                 .stream()
@@ -34,6 +37,7 @@ public class ReviewGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Update Review")
     public ReviewResponseDTO updateReview(@Argument String reviewId,
                                           @Argument int rating,
                                           @Argument String comment) {
@@ -42,6 +46,7 @@ public class ReviewGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Delete Review")
     public Boolean deleteReview(@Argument String reviewId) {
         reviewService.deleteReview(reviewId);
         return true;

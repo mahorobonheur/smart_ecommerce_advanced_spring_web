@@ -8,6 +8,9 @@ import com.smart.ecommerce.repository.OrderItemRepository;
 import com.smart.ecommerce.repository.ProductRepository;
 import com.smart.ecommerce.service.OrderItemService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +31,8 @@ public class OrderItemServiceDevImplementation implements OrderItemService {
     private ProductRepository productRepository;
 
     @Override
+    @Transactional
+    @CacheEvict(value = "orderItemsPage", allEntries = true)
     public OrderItem addOrderItem(OrderItemDTO dto, Order order) {
         Product product = productRepository.findById(dto.getProductId())
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
@@ -44,17 +49,26 @@ public class OrderItemServiceDevImplementation implements OrderItemService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "orderItemById", key = "#itemId")
     public OrderItem getOrderItemById(UUID itemId) {
         return orderItemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Order item not found"));
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "orderItemsPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<OrderItem> allOrderItems(Pageable pageable) {
         return orderItemRepository.findAll(pageable);
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "orderItemsPage", allEntries = true),
+            @CacheEvict(value = "orderItemById", key = "#itemId")
+    })
     public OrderItem updateOrderItem(UUID itemId, OrderItemDTO dto) {
         OrderItem existingItem = getOrderItemById(itemId);
         Product product = productRepository.findById(dto.getProductId())
@@ -68,6 +82,11 @@ public class OrderItemServiceDevImplementation implements OrderItemService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "orderItemsPage", allEntries = true),
+            @CacheEvict(value = "orderItemById", key = "#itemId")
+    })
     public void deleteOrderItem(UUID itemId) {
         if (!orderItemRepository.existsById(itemId)) {
             throw new IllegalArgumentException("Order item not found");

@@ -5,6 +5,7 @@ import com.smart.ecommerce.dto.request.ProductDTO;
 import com.smart.ecommerce.dto.response.ProductResponseDTO;
 import com.smart.ecommerce.model.Product;
 import com.smart.ecommerce.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,12 +24,14 @@ public class ProductGraphQLController {
     private ProductService productService;
 
     @QueryMapping
+    @Operation(summary = "GraphQL: Get product by Id")
     public ProductResponseDTO productById(@Argument String productId){
         Product product = productService.getProductById(UUID.fromString(productId));
         return toResponse(product);
     }
 
     @QueryMapping
+    @Operation(summary = "GraphQL: Get all products")
     public ProductPageDTO allProducts(@Argument Integer page, @Argument Integer size){
         Page<Product> productsPage = productService.allProducts(
                 PageRequest.of(page != null ? page : 0, size != null ? size : 10));
@@ -45,16 +48,19 @@ public class ProductGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Create product")
     public ProductResponseDTO createProduct(@Argument ProductDTO input){
         return toResponse(productService.addProduct(input));
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Update product")
     public ProductResponseDTO updateProduct(@Argument String productId, @Argument ProductDTO input){
         return toResponse(productService.updateProduct(UUID.fromString(productId), input));
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Delete product")
     public Boolean deleteProduct(@Argument String productId){
         productService.deleteProduct(UUID.fromString(productId));
         return true;

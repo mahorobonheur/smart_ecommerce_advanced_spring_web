@@ -1,7 +1,6 @@
 package com.smart.ecommerce.service.implementation.dev;
 
 import com.smart.ecommerce.dto.request.OrderDTO;
-import com.smart.ecommerce.dto.request.OrderItemDTO;
 import com.smart.ecommerce.dto.request.ProductDTO;
 import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.*;
@@ -16,6 +15,9 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,7 +53,6 @@ public class OrderServiceDevImplementation implements OrderService {
     @Override
     @Transactional
     public Map<String, Object> checkout(UUID userId) throws StripeException {
-
         Stripe.apiKey = stripeApiKey;
 
         User user = userRepository.findById(userId)
@@ -67,16 +68,12 @@ public class OrderServiceDevImplementation implements OrderService {
         long totalAmount = 0;
 
         for (CartItem item : cart.getItems()) {
-
             Product product = item.getProduct();
-
-
             if (product.getStock() < item.getQuantity()) {
                 throw new IllegalStateException(
                         "Insufficient stock for product: " + product.getProductName()
                 );
             }
-
             totalAmount += product.getPrice() * item.getQuantity();
         }
 
@@ -100,6 +97,7 @@ public class OrderServiceDevImplementation implements OrderService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "ordersPage", allEntries = true)
     public Order confirmPaymentAndCreateOrder(UUID userId, String paymentIntentId)
             throws StripeException {
 
@@ -108,11 +106,9 @@ public class OrderServiceDevImplementation implements OrderService {
         PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
 
         if (!"succeeded".equals(intent.getStatus())) {
-
             Map<String, Object> confirmParams = new HashMap<>();
             confirmParams.put("payment_method", "pm_card_visa");
             confirmParams.put("return_url", "http://localhost:8080");
-
             intent = intent.confirm(confirmParams);
         }
 
@@ -141,7 +137,6 @@ public class OrderServiceDevImplementation implements OrderService {
         double total = 0;
 
         for (CartItem cartItem : cart.getItems()) {
-
             Product product = cartItem.getProduct();
             if (product.getStock() < cartItem.getQuantity()) {
                 throw new IllegalStateException(
@@ -157,7 +152,6 @@ public class OrderServiceDevImplementation implements OrderService {
             orderItem.setOrder(order);
             orderItem.setProduct(product);
             orderItem.setQuantity(cartItem.getQuantity());
-
             orderItem.setPrice(product.getPrice());
 
             order.getItems().add(orderItem);
@@ -171,29 +165,36 @@ public class OrderServiceDevImplementation implements OrderService {
         return orderRepository.save(order);
     }
 
-
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "orderById", key = "#orderId")
     public Order getOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "ordersPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Order> allOrders(Pageable pageable) {
         return orderRepository.findAll(pageable);
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "ordersPage", allEntries = true),
+            @CacheEvict(value = "orderById", key = "#orderId")
+    })
     public Order updateOrder(UUID orderId, OrderDTO dto) {
         Order existingOrder = getOrderById(orderId);
         OrderStatus currentStatus = existingOrder.getStatus();
 
         Map<OrderStatus, Set<OrderStatus>> allowedTransitions = Map.of(
-            OrderStatus.PENDING, Set.of(OrderStatus.PAID, OrderStatus.CANCELLED),
+                OrderStatus.PENDING, Set.of(OrderStatus.PAID, OrderStatus.CANCELLED),
                 OrderStatus.PAID, Set.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
                 OrderStatus.SHIPPED, Set.of(),
                 OrderStatus.CANCELLED, Set.of()
-
         );
 
         Set<OrderStatus> allowedNext =
@@ -204,7 +205,6 @@ public class OrderServiceDevImplementation implements OrderService {
                     + currentStatus + " to " + dto.getStatus() );
         }
 
-
         existingOrder.setStatus(OrderStatus.valueOf(dto.getStatus()));
         existingOrder.setOrderDate(LocalDateTime.now());
 
@@ -212,6 +212,11 @@ public class OrderServiceDevImplementation implements OrderService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "ordersPage", allEntries = true),
+            @CacheEvict(value = "orderById", key = "#orderId")
+    })
     public void deleteOrder(UUID orderId) {
         if (!orderRepository.existsById(orderId)) {
             throw new IllegalArgumentException("Order not found");

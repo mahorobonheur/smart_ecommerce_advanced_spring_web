@@ -8,6 +8,7 @@ import com.smart.ecommerce.model.OrderItem;
 import com.smart.ecommerce.model.OrderStatus;
 import com.smart.ecommerce.service.OrderService;
 import com.stripe.exception.StripeException;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,12 +29,14 @@ public class OrderGraphQLController {
     private OrderService orderService;
 
     @QueryMapping
+    @Operation(summary = "GraphQL: Get Order By Id")
     public OrderResponseDTO orderById(@Argument UUID orderId) {
         Order order = orderService.getOrderById(orderId);
         return mapToOrderResponse(order);
     }
 
     @QueryMapping
+    @Operation(summary = "GraphQL: Get all orders")
     public List<OrderResponseDTO> allOrders(
             @Argument int page,
             @Argument int size
@@ -48,11 +51,13 @@ public class OrderGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Checkout api")
     public Map<String, Object> checkout(@Argument UUID userId) throws StripeException {
         return orderService.checkout(userId);
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Confirm payment")
     public OrderResponseDTO confirmPayment(
             @Argument UUID userId,
             @Argument String paymentIntentId
@@ -63,6 +68,7 @@ public class OrderGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Update Order")
     public OrderResponseDTO updateOrder(
             @Argument UUID orderId,
             @Argument OrderStatus status
@@ -74,6 +80,7 @@ public class OrderGraphQLController {
     }
 
     @MutationMapping
+    @Operation(summary = "GraphQL: Delete order")
     public Boolean deleteOrder(@Argument UUID orderId) {
         orderService.deleteOrder(orderId);
         return true;
