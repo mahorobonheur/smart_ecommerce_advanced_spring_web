@@ -30,6 +30,12 @@ public class UserController {
         return ResponseEntity.ok(toResponse(user));
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<UserResponseDTO> login(@RequestParam String email,
+                                                 @RequestParam String password){
+        User user = userService.login(email, password);
+        return ResponseEntity.ok(toResponse(user));
+    }
 
 
     @GetMapping("{userId}")

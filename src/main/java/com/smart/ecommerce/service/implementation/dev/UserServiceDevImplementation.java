@@ -58,6 +58,15 @@ public class UserServiceDevImplementation implements UserService {
         return userRepository.findAll(pageable);
     }
 
+    @Override
+    public User login(String email, String password){
+        User user = userRepository.findByEmailAndPassword(email, password);
+        if(user == null){
+            throw new ResourceNotFoundException("User not found");
+
+        }
+         return user;
+    }
 
     @Override
     @Transactional
