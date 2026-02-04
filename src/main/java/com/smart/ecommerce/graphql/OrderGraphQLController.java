@@ -8,13 +8,13 @@ import com.smart.ecommerce.model.OrderItem;
 import com.smart.ecommerce.model.OrderStatus;
 import com.smart.ecommerce.service.OrderService;
 import com.stripe.exception.StripeException;
-import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
@@ -29,14 +29,14 @@ public class OrderGraphQLController {
     private OrderService orderService;
 
     @QueryMapping
-    @Operation(summary = "GraphQL: Get Order By Id")
+    @PreAuthorize("isAuthenticated()")
     public OrderResponseDTO orderById(@Argument UUID orderId) {
         Order order = orderService.getOrderById(orderId);
         return mapToOrderResponse(order);
     }
 
     @QueryMapping
-    @Operation(summary = "GraphQL: Get all orders")
+    @PreAuthorize("isAuthenticated()")
     public List<OrderResponseDTO> allOrders(
             @Argument int page,
             @Argument int size
@@ -51,13 +51,13 @@ public class OrderGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphQL: Checkout api")
+    @PreAuthorize("isAuthenticated()")
     public Map<String, Object> checkout(@Argument UUID userId) throws StripeException {
         return orderService.checkout(userId);
     }
 
     @MutationMapping
-    @Operation(summary = "GraphQL: Confirm payment")
+    @PreAuthorize("isAuthenticated()")
     public OrderResponseDTO confirmPayment(
             @Argument UUID userId,
             @Argument String paymentIntentId
@@ -68,7 +68,7 @@ public class OrderGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphQL: Update Order")
+    @PreAuthorize("isAuthenticated()")
     public OrderResponseDTO updateOrder(
             @Argument UUID orderId,
             @Argument OrderStatus status
@@ -80,7 +80,7 @@ public class OrderGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphQL: Delete order")
+    @PreAuthorize("isAuthenticated()")
     public Boolean deleteOrder(@Argument UUID orderId) {
         orderService.deleteOrder(orderId);
         return true;

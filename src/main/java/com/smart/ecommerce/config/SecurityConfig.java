@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -27,9 +29,11 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http.
                 csrf(
-                csrf -> csrf.ignoringRequestMatchers("/api/**"))
+                csrf -> csrf.ignoringRequestMatchers("/api/**", "/graphql"))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests((requests) -> requests
+                        .requestMatchers("/graphiql").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/graphql").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/",
                                 "/api/users",
@@ -68,6 +72,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
 
                 )
+                .httpBasic(httpSecurityHttpBasicConfigurer -> {})
                 .sessionManagement(session -> session.sessionFixation().newSession());
 
         return http.build();
@@ -79,11 +84,16 @@ public class SecurityConfig {
         config.setAllowCredentials(true);
         config.setAllowedOriginPatterns(Arrays.asList("http://localhost:5172"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        config.setAllowedMethods(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
     }
 }

@@ -5,13 +5,13 @@ import com.smart.ecommerce.dto.request.CategoryDTO;
 import com.smart.ecommerce.dto.response.CategoryResponseDTO;
 import com.smart.ecommerce.model.Category;
 import com.smart.ecommerce.service.CategoryService;
-import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
@@ -25,14 +25,14 @@ public class CategoryGraphQLController {
     private CategoryService categoryService;
 
     @QueryMapping
-    @Operation(summary = "GraphL: Get category by Id")
+    @PreAuthorize("permitAll()")
     public CategoryResponseDTO categoryById(@Argument String categoryId){
         Category category = categoryService.getCategoryById(UUID.fromString(categoryId));
         return toResponse(category);
     }
 
     @QueryMapping
-    @Operation(summary = "GraphL: Get all categories")
+    @PreAuthorize("permitAll()")
     public CategoryPageDTO allCategories(@Argument Integer page, @Argument Integer size){
         Page<Category> categoryPage = categoryService.allCategories(
                 PageRequest.of(page != null ? page : 0, size != null ? size : 10)
@@ -51,20 +51,20 @@ public class CategoryGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphL: Create category")
+    @PreAuthorize("isAuthenticated()")
     public CategoryResponseDTO createCategory(@Argument CategoryDTO input) {
         Category category = categoryService.addCategory(input);
         return toResponse(category);
     }
 
     @MutationMapping
-    @Operation(summary = "GraphL: Update Category")
+    @PreAuthorize("hasRole('ADMIN')")
     public CategoryResponseDTO updateCategory(@Argument String categoryId, @Argument CategoryDTO input){
         return toResponse(categoryService.updateCategory(UUID.fromString(categoryId), input));
     }
 
     @MutationMapping
-    @Operation(summary = "GraphL: Delete Category")
+    @PreAuthorize("hasRole('ADMIN')")
     public Boolean deleteCategory(@Argument String categoryId){
         categoryService.deleteCategory(UUID.fromString(categoryId));
         return true;

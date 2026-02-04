@@ -14,6 +14,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,9 @@ public class UserServiceDevImplementation implements UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     @Override
     @CacheEvict(value = "usersPage", allEntries = true)
@@ -36,7 +40,7 @@ public class UserServiceDevImplementation implements UserService {
         }
         User user = new User();
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setFullName(dto.getFullName());
         user.setRole(Role.CUSTOMER);
         user.setCreatedAt(LocalDateTime.now());
@@ -60,10 +64,12 @@ public class UserServiceDevImplementation implements UserService {
 
     @Override
     public User login(String email, String password){
-        User user = userRepository.findByEmailAndPassword(email, password);
-        if(user == null){
-            throw new ResourceNotFoundException("User not found");
+        User user = userRepository.findByEmail(email).orElseThrow(
+                () -> new ResourceNotFoundException("User not found")
+        );
 
+        if(!passwordEncoder.matches(password, user.getPassword())){
+            throw new IllegalArgumentException("Invalid credentials");
         }
          return user;
     }
@@ -96,6 +102,7 @@ public class UserServiceDevImplementation implements UserService {
         existingUser.setFullName(userDetails.getFullName());
         existingUser.setEmail(userDetails.getEmail());
         existingUser.setRole(Role.valueOf(userDetails.getRole()));
+        existingUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
 
 
         return userRepository.save(existingUser);

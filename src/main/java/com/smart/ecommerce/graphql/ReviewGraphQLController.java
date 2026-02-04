@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
@@ -21,14 +22,14 @@ public class ReviewGraphQLController {
     private ReviewService reviewService;
 
     @MutationMapping
-    @Operation(summary = "GraphQL: Add review")
+    @PreAuthorize("isAuthenticated()")
     public ReviewResponseDTO addReview(@Argument ReviewDTO input) {
         com.smart.ecommerce.dto.response.ReviewResponseDTO dto = reviewService.addReview(input);
         return dto;
     }
 
     @QueryMapping
-    @Operation(summary = "GraphQL: Reviews By Product")
+    @PreAuthorize("permitAll()")
     public List<ReviewResponseDTO> reviewsByProduct(@Argument String productId) {
         return reviewService.getReviewsByProductId(productId)
                 .stream()
@@ -37,7 +38,7 @@ public class ReviewGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphQL: Update Review")
+    @PreAuthorize("isAuthenticated()")
     public ReviewResponseDTO updateReview(@Argument String reviewId,
                                           @Argument int rating,
                                           @Argument String comment) {
@@ -46,7 +47,7 @@ public class ReviewGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphQL: Delete Review")
+    @PreAuthorize("isAuthenticated()")
     public Boolean deleteReview(@Argument String reviewId) {
         reviewService.deleteReview(reviewId);
         return true;

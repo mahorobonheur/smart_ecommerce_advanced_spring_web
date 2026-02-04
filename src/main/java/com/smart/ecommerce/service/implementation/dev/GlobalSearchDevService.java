@@ -1,5 +1,12 @@
 package com.smart.ecommerce.service.implementation.dev;
 
+import com.smart.ecommerce.dto.mapper.OrderMapper;
+import com.smart.ecommerce.dto.mapper.ProductMapper;
+import com.smart.ecommerce.dto.mapper.UserMapper;
+import com.smart.ecommerce.dto.response.GlobalSearchResponseDTO;
+import com.smart.ecommerce.dto.response.OrderResponseDTO;
+import com.smart.ecommerce.dto.response.ProductResponseDTO;
+import com.smart.ecommerce.dto.response.UserResponseDTO;
 import com.smart.ecommerce.repository.OrderRepository;
 import com.smart.ecommerce.repository.ProductRepository;
 import com.smart.ecommerce.repository.UserRepository;
@@ -30,12 +37,25 @@ public class GlobalSearchDevService implements GlobalSearchService {
     }
 
     @Override
-    public Map<String, List<?>> searchAll(String keyWord) {
-        Map<String, List<?>> results = new HashMap<>();
-        results.put("users", userRepository.findAll(UserSpecification.searchUsers(keyWord)));
-        results.put("orders", orderRepository.findAll(OrderSpecification.searchOrders(keyWord)));
-        results.put("products", productRepository.findAll(ProductSpecification.searchProduct(keyWord)));
+    public GlobalSearchResponseDTO searchAll(String keyWord) {
+        List<UserResponseDTO> users = userRepository
+                .findAll(UserSpecification.searchUsers(keyWord))
+                .stream()
+                .map(UserMapper::toDto)
+                .toList();
 
-        return results;
+        List<OrderResponseDTO> orders = orderRepository
+                .findAll(OrderSpecification.searchOrders(keyWord))
+                .stream()
+                .map(OrderMapper::toDto)
+                .toList();
+
+        List<ProductResponseDTO> products = productRepository
+                .findAll(ProductSpecification.searchProduct(keyWord))
+                .stream()
+                .map(ProductMapper::toDto)
+                .toList();
+
+        return new GlobalSearchResponseDTO(users, products, orders);
     }
 }

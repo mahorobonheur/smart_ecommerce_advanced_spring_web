@@ -1,8 +1,7 @@
 package com.smart.ecommerce.service;
 
-import java.util.List;
-import java.util.Map;
+import com.smart.ecommerce.dto.response.GlobalSearchResponseDTO;
 
 public interface GlobalSearchService {
-    Map<String, List<?>> searchAll(String keyWord);
+    public GlobalSearchResponseDTO searchAll(String keyWord);
 }

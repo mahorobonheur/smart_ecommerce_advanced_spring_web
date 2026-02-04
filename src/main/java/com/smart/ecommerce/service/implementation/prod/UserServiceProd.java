@@ -50,11 +50,10 @@ public class UserServiceProd implements UserService {
 
     @Override
     public User login(String email, String password){
-        User user = userRepository.findByEmailAndPassword(email, password);
-        if(user == null){
-            throw new ResourceNotFoundException("User not found");
+        User user = userRepository.findByEmail(email).orElseThrow(
+                () -> new ResourceNotFoundException("User not found")
+        );
 
-        }
         return user;
     }
     @Override

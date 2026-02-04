@@ -1,5 +1,6 @@
 package com.smart.ecommerce.controller.rest;
 
+import com.smart.ecommerce.dto.response.GlobalSearchResponseDTO;
 import com.smart.ecommerce.service.GlobalSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,7 +18,7 @@ public class SearchController {
     private GlobalSearchService globalSearchService;
 
     @GetMapping("/global")
-    public Map<String, List<?>> globalSearch(@RequestParam String keyWord){
+    public GlobalSearchResponseDTO globalSearch(@RequestParam String keyWord) {
         return globalSearchService.searchAll(keyWord);
     }
 }

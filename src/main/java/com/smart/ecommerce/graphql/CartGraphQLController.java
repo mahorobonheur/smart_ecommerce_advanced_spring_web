@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 import java.util.UUID;
@@ -25,7 +26,7 @@ public class CartGraphQLController {
     private UserRepository userRepository;
 
     @QueryMapping
-    @Operation(summary = "GraphL: Get cart by user")
+    @PreAuthorize("isAuthenticated()")
     public CartResponseDTO cartByUser(@Argument UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -33,7 +34,7 @@ public class CartGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphL: Add item to cart")
+    @PreAuthorize("isAuthenticated()")
     public CartResponseDTO addItemToCart(
             @Argument UUID userId,
             @Argument UUID productId,
@@ -45,7 +46,7 @@ public class CartGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphL: Remove item from cart")
+    @PreAuthorize("isAuthenticated()")
     public CartResponseDTO removeItemFromCart(
             @Argument UUID userId,
             @Argument UUID productId
@@ -56,7 +57,7 @@ public class CartGraphQLController {
     }
 
     @MutationMapping
-    @Operation(summary = "GraphL: Clear cart")
+    @PreAuthorize("isAuthenticated()")
     public Boolean clearCart(@Argument UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
