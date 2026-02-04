@@ -1,6 +1,9 @@
 package com.smart.ecommerce.controller.rest;
 
+import com.smart.ecommerce.config.JwtUtil;
+import com.smart.ecommerce.dto.request.LoginRequestDto;
 import com.smart.ecommerce.dto.request.UserDTO;
+import com.smart.ecommerce.dto.response.JwtResponse;
 import com.smart.ecommerce.dto.response.UserResponseDTO;
 import com.smart.ecommerce.model.User;
 import com.smart.ecommerce.service.UserService;
@@ -11,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -19,8 +24,15 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 public class UserController {
 
-    @Autowired
-    UserService userService;
+    private AuthenticationManager authenticationManager;
+    private JwtUtil jwtUtil;
+    private UserService userService;
+
+    public UserController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService) {
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+        this.userService = userService;
+    }
 
     @PostMapping
     @Operation(summary = "Create a new user")
@@ -31,10 +43,20 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponseDTO> login(@RequestParam String email,
-                                                 @RequestParam String password){
-        User user = userService.login(email, password);
-        return ResponseEntity.ok(toResponse(user));
+    @Operation(summary = "Login API")
+    public JwtResponse login(@RequestBody LoginRequestDto loginRequestDto){
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequestDto.getEmail(),
+                        loginRequestDto.getPassword()
+                )
+        );
+
+        User user = userService.login(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+        String token = jwtUtil.generateToken(user);
+
+        return new JwtResponse(token, "Bearer", user.getEmail(), user.getRole().name());
+
     }
 
 
