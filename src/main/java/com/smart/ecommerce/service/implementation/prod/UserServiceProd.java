@@ -49,7 +49,7 @@ public class UserServiceProd implements UserService {
     }
 
     @Override
-    public User login(String email, String password){
+    public User findByEmail(String email){
         User user = userRepository.findByEmail(email).orElseThrow(
                 () -> new ResourceNotFoundException("User not found")
         );

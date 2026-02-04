@@ -13,5 +13,5 @@ public interface UserService {
     Page<User> getAllUsers(Pageable pageable);
     void deleteUser(UUID userId);
     User updateUser(UUID id, UserDTO userDetails);
-    User login(String email, String password);
+    User findByEmail(String email);
 }
