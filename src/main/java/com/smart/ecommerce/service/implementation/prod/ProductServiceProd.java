@@ -10,6 +10,7 @@ import com.smart.ecommerce.repository.ProductRepository;
 import com.smart.ecommerce.service.InventoryService;
 import com.smart.ecommerce.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,6 +53,21 @@ public class ProductServiceProd implements ProductService {
         return productRepository.findById(productId).orElseThrow(
                 () -> new ResourceNotFoundException("Product not found")
         );
+    }
+
+    @Override
+    @Cacheable
+    public Page<Product> findByCategory(String categoryName, Pageable pageable){
+        return null;
+    }
+
+    public Page<Product> getLowOnStockProduct(int threshold, Pageable pageable){
+        return null;
+    }
+
+    @Override
+    public Page<Product> findByProductsRange(double min, double max, Pageable pageable){
+        return null;
     }
 
     @Override

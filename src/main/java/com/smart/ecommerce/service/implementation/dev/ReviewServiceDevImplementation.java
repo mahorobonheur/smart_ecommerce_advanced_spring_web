@@ -25,18 +25,36 @@ public class ReviewServiceDevImplementation implements ReviewService {
     private ReviewRepository reviewRepository;
 
     @Override
-    @Transactional
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = {
+                    IllegalArgumentException.class
+            }
+    )
     @CacheEvict(value = {"reviewsPage", "reviewsByProduct"}, allEntries = true)
     public ReviewResponseDTO addReview(ReviewDTO dto) {
-        Review review = new Review(dto.getProductId(), dto.getUserId(), dto.getRating(), dto.getComment());
-        Review savedReview = reviewRepository.save(review);
 
+        if (dto.getRating() < 1 || dto.getRating() > 5) {
+            throw new IllegalArgumentException("Rating must be between 1 and 5");
+        }
+
+        Review review = new Review(
+                dto.getProductId(),
+                dto.getUserId(),
+                dto.getRating(),
+                dto.getComment()
+        );
+
+        Review savedReview = reviewRepository.save(review);
         return toResponse(savedReview);
     }
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "reviewsPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(
+            value = "reviewsPage",
+            key = "#pageable.pageNumber + '-' + #pageable.pageSize"
+    )
     public Page<Review> getAllReviews(Pageable pageable) {
         return reviewRepository.findAll(pageable);
     }
@@ -49,20 +67,38 @@ public class ReviewServiceDevImplementation implements ReviewService {
     }
 
     @Override
-    @Transactional
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = {
+                    ResourceNotFoundException.class,
+                    IllegalArgumentException.class
+            }
+    )
     @CacheEvict(value = {"reviewsPage", "reviewsByProduct"}, allEntries = true)
     public Review updateReview(String reviewId, int rating, String comment) {
+
+        if (rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("Rating must be between 1 and 5");
+        }
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+
         review.setRating(rating);
         review.setComment(comment);
+
         return reviewRepository.save(review);
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"reviewsPage", "reviewsByProduct"}, allEntries = true)
     public void deleteReview(String reviewId) {
+
+        if (!reviewRepository.existsById(reviewId)) {
+            throw new ResourceNotFoundException("Review not found");
+        }
+
         reviewRepository.deleteById(reviewId);
     }
 

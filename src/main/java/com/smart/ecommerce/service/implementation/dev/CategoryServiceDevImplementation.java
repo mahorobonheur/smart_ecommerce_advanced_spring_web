@@ -13,16 +13,21 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
 @Profile("dev")
+@Transactional(
+        propagation = Propagation.REQUIRED,
+        rollbackFor = { ResourceNotFoundException.class, IllegalArgumentException.class, RuntimeException.class }
+)
 public class CategoryServiceDevImplementation implements CategoryService {
 
     @Autowired
-    CategoryRepository categoryRepository;
+    private CategoryRepository categoryRepository;
 
     @Override
     @Transactional
@@ -34,15 +39,15 @@ public class CategoryServiceDevImplementation implements CategoryService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
     @Cacheable(value = "categoryById", key = "#categoryId")
     public Category getCategoryById(UUID categoryId) {
-        return categoryRepository.findById(categoryId).orElseThrow(() ->
-                new ResourceNotFoundException("Category not found."));
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found."));
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
     @Cacheable(value = "categoriesPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> allCategories(Pageable pageable) {
         return categoryRepository.findAll(pageable);
@@ -57,10 +62,11 @@ public class CategoryServiceDevImplementation implements CategoryService {
     public Category updateCategory(UUID categoryId, CategoryDTO categoryDetails) {
         Category existingCategory = getCategoryById(categoryId);
 
-        if(!existingCategory.getCategoryName().equals(categoryDetails.getCategoryName())
-                && categoryRepository.existsByCategoryName(categoryDetails.getCategoryName())){
+        if (!existingCategory.getCategoryName().equals(categoryDetails.getCategoryName())
+                && categoryRepository.existsByCategoryName(categoryDetails.getCategoryName())) {
             throw new IllegalArgumentException("This category already exists!");
         }
+
         existingCategory.setCategoryName(categoryDetails.getCategoryName());
         return categoryRepository.save(existingCategory);
     }
@@ -72,7 +78,7 @@ public class CategoryServiceDevImplementation implements CategoryService {
             @CacheEvict(value = "categoryById", key = "#categoryId")
     })
     public void deleteCategory(UUID categoryId) {
-        if(!categoryRepository.existsById(categoryId)){
+        if (!categoryRepository.existsById(categoryId)) {
             throw new ResourceNotFoundException("Category with id " + categoryId + " is not found");
         }
         categoryRepository.deleteById(categoryId);

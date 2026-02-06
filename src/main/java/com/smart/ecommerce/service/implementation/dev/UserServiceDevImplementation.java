@@ -1,6 +1,7 @@
 package com.smart.ecommerce.service.implementation.dev;
 
 import com.smart.ecommerce.dto.request.UserDTO;
+import com.smart.ecommerce.exception.BadRequestException;
 import com.smart.ecommerce.exception.DuplicateResourceException;
 import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.Role;
@@ -32,6 +33,14 @@ public class UserServiceDevImplementation implements UserService {
     private PasswordEncoder passwordEncoder;
 
 
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = {
+                    DuplicateResourceException.class,
+                    BadRequestException.class,
+                    IllegalArgumentException.class
+            }
+    )
     @Override
     @CacheEvict(value = "usersPage", allEntries = true)
     public User createUser(UserDTO dto) {
@@ -49,6 +58,7 @@ public class UserServiceDevImplementation implements UserService {
 
 
     @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "userById", key = "#userId")
     public User getUserById(UUID userId){
         return userRepository.findById(userId)
@@ -57,12 +67,14 @@ public class UserServiceDevImplementation implements UserService {
 
 
     @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "usersPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<User> getAllUsers(Pageable pageable){
         return userRepository.findAll(pageable);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public User findByEmail(String email){
         User user = userRepository.findByEmail(email).orElseThrow(
                 () -> new ResourceNotFoundException("User not found")
@@ -71,7 +83,7 @@ public class UserServiceDevImplementation implements UserService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"userById", "usersPage"}, allEntries = true)
     public void deleteUser(UUID userId){
         if(!userRepository.existsById(userId)){
@@ -82,7 +94,13 @@ public class UserServiceDevImplementation implements UserService {
 
 
     @Override
-    @Transactional
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = {
+                    BadRequestException.class,
+                    IllegalArgumentException.class
+            }
+    )
     @CachePut(value = "userById", key = "#userId")
     @CacheEvict(value = "usersPage", allEntries = true)
     public User updateUser(UUID userId, UserDTO userDetails) {

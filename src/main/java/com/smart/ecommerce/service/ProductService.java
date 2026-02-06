@@ -13,4 +13,7 @@ public interface ProductService {
     Page<Product> allProducts(Pageable pageable);
     Product updateProduct(UUID productId, ProductDTO dto);
     void deleteProduct(UUID productId);
+    Page<Product> findByCategory(String categoryName, Pageable pageable);
+    Page<Product> findByProductsRange(double min, double max, Pageable pageable);
+    Page<Product> getLowOnStockProduct(int threshold, Pageable pageable);
 }

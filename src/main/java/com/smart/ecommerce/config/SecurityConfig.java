@@ -50,6 +50,8 @@ public class SecurityConfig {
                                 "/api/reviews",
                                 "/api/reviews/product/{productId}",
                                 "/api/products/{productId}",
+                                "/api/products/by-category/{categoryName}",
+                                "/api/products/between",
                                 "/api/category/{categoryId}",
                                 "/api/category/").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/review",
@@ -60,6 +62,7 @@ public class SecurityConfig {
                                 "/api/cart/add").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users",
                                 "/api/users/{userId}",
+                                "/api/products/low-stock",
                                 "/api/orders/{orderId}",
                                 "/api/orders",
                                 "/api/cart/{userId}").authenticated()

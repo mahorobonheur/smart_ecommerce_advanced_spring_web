@@ -1,6 +1,7 @@
 package com.smart.ecommerce.service.implementation.dev;
 
 import com.smart.ecommerce.dto.request.OrderItemDTO;
+import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.Order;
 import com.smart.ecommerce.model.OrderItem;
 import com.smart.ecommerce.model.Product;
@@ -15,13 +16,21 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
 @Profile("dev")
-@Transactional
+@Transactional(
+        propagation = Propagation.REQUIRED,
+        rollbackFor = {
+                ResourceNotFoundException.class,
+                IllegalArgumentException.class,
+                RuntimeException.class
+        }
+)
 public class OrderItemServiceDevImplementation implements OrderItemService {
 
     @Autowired
@@ -34,8 +43,9 @@ public class OrderItemServiceDevImplementation implements OrderItemService {
     @Transactional
     @CacheEvict(value = "orderItemsPage", allEntries = true)
     public OrderItem addOrderItem(OrderItemDTO dto, Order order) {
+
         Product product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         OrderItem orderItem = new OrderItem();
         orderItem.setOrder(order);
@@ -49,15 +59,15 @@ public class OrderItemServiceDevImplementation implements OrderItemService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
     @Cacheable(value = "orderItemById", key = "#itemId")
     public OrderItem getOrderItemById(UUID itemId) {
         return orderItemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Order item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order item not found"));
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
     @Cacheable(value = "orderItemsPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<OrderItem> allOrderItems(Pageable pageable) {
         return orderItemRepository.findAll(pageable);
@@ -70,9 +80,11 @@ public class OrderItemServiceDevImplementation implements OrderItemService {
             @CacheEvict(value = "orderItemById", key = "#itemId")
     })
     public OrderItem updateOrderItem(UUID itemId, OrderItemDTO dto) {
+
         OrderItem existingItem = getOrderItemById(itemId);
+
         Product product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         existingItem.setProduct(product);
         existingItem.setQuantity(dto.getQuantity());
@@ -89,7 +101,7 @@ public class OrderItemServiceDevImplementation implements OrderItemService {
     })
     public void deleteOrderItem(UUID itemId) {
         if (!orderItemRepository.existsById(itemId)) {
-            throw new IllegalArgumentException("Order item not found");
+            throw new ResourceNotFoundException("Order item not found");
         }
         orderItemRepository.deleteById(itemId);
     }
