@@ -108,6 +108,291 @@ The project demonstrates practical AOP usage through:
 
 ## Development Notes
 
+## 1. Repository Usage Strategy
+## 1.1 General Rules
+
+JPA repositories are used for relational data (User, Product, Order, Inventory, Category, Cart).
+
+Mongo repositories are used for document-style, high‑write data (Reviews).
+
+Repositories never contain business logic.
+
+Complex filtering/searching uses Specifications, not custom queries.
+
+Custom @Query is used only for:
+
+Reports
+
+Aggregations
+
+Performance‑critical queries
+
+## 2. Repository Breakdown & Query Logic
+## 2.1 UserRepository (JPA)
+
+Purpose: Authentication, uniqueness checks, global search.
+
+boolean existsByEmail(String email);
+Optional<User> findByEmail(String email);
+
+Uses derived queries (simple & readable).
+
+Specifications used for global search (UserSpecification).
+
+## 2.2 ProductRepository (JPA)
+
+Purpose: Product browsing, filtering, reporting.
+
+Page<Product> findByCategory_CategoryName(String categoryName, Pageable pageable);
+Page<Product> findByPriceBetween(double min, double max, Pageable pageable);
+Low‑stock report query
+@Query("""
+    SELECT p FROM Product p
+    JOIN p.inventory i
+    WHERE i.quantityAvailable < :threshold
+    ORDER BY i.quantityAvailable ASC
+""")
+Page<Product> findProductLowOnStock(@Param("threshold") int threshold, Pageable pageable);
+
+Why @Query?
+
+Cross‑entity join (Product + Inventory)
+
+Reporting use‑case
+
+Sorting by joined entity field
+
+## 2.3 InventoryRepository (JPA)
+
+Purpose: Stock tracking.
+
+boolean existsByProduct_ProductId(UUID productId);
+Inventory findByProduct_ProductId(UUID productId);
+
+Ensures 1‑to‑1 product–inventory constraint.
+
+Used heavily in order processing and stock validation.
+
+## 2.4 CategoryRepository (JPA)
+
+Purpose: Product classification.
+
+boolean existsByCategoryName(String categoryName);
+
+Prevents duplicate categories.
+
+## 2.5 CartRepository (JPA)
+
+Purpose: User shopping cart.
+
+Optional<Cart> findByUser(User user);
+
+One cart per user.
+
+Lazy‑loaded items.
+
+## 2.6 ReviewRepository (MongoDB)
+
+Purpose: High‑volume, write‑heavy user reviews.
+
+List<Review> findByProductId(String productId);
+
+Why MongoDB?
+
+Reviews are independent documents
+
+Frequent writes
+
+No joins required
+
+## 3. Transaction Management Strategy
+## 3.1 Global Rules
+
+Service layer owns transactions
+
+Repositories are transaction‑agnostic
+
+Default propagation: REQUIRED
+
+Read‑only queries explicitly marked
+
+## 3.2 Read Transactions
+@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
+
+Used for:
+
+Fetching products
+
+Pagination
+
+Reports
+
+Benefits:
+
+No dirty checks
+
+Faster performance
+
+Clear intent
+
+## 3.3 Write Transactions
+@Transactional(
+    rollbackFor = Exception.class,
+    noRollbackFor = IllegalArgumentException.class
+)
+
+Used for:
+
+Create / update / delete operations
+
+Checkout & order creation
+
+Why custom rollback rules?
+
+Validation errors should not rollback DB state
+
+Business failures should rollback
+
+## 3.4 Critical Transactions (Orders)
+
+Order checkout & confirmation:
+
+Payment validation
+
+Stock validation
+
+Inventory update
+
+Order + OrderItems creation
+
+All executed in single transaction to ensure:
+
+Atomicity
+
+Consistency
+
+## 4. Caching Strategy
+## 4.1 General Principles
+
+Cache read‑heavy operations
+
+Never cache writes
+
+Always evict on data mutation
+
+Cache keys must include all method parameters
+
+## 5. Cache Usage by Domain
+## 5.1 Product Cache
+Cache	Purpose
+productById	Product detail page
+productsPage	Product listing
+productsByCategory	Category browsing
+lowStockProducts	Inventory reports
+Low‑stock cache example
+@Cacheable(
+  value = "lowStockProducts",
+  key = "'threshold:' + #threshold + '-page:' + #pageable.pageNumber"
+)
+
+Evicted when:
+
+Product updated
+
+Inventory updated
+
+Product deleted
+
+## 5.2 Inventory Cache
+Cache	Purpose
+inventoryById	Inventory lookup
+inventoryByProduct	Product stock check
+inventoriesPage	Inventory admin view
+
+Eviction triggered on:
+
+Stock update
+
+Inventory deletion
+
+## 5.3 Cart Cache
+Cache	Purpose
+cartByUser	Fast cart retrieval
+
+Evicted on:
+
+Add item
+
+Remove item
+
+Clear cart
+
+## 5.4 Order Cache
+Cache	Purpose
+orderById	Order detail
+ordersPage	Admin order list
+
+Evicted on:
+
+Order creation
+
+Status update
+
+Deletion
+
+## 5.5 Review Cache
+Cache	Purpose
+reviewsPage	Paginated reviews
+reviewsByProduct	Product reviews
+
+Evicted on:
+
+Review add
+
+Review update
+
+Review delete
+
+## 6. Cache Eviction Rules (Golden Rules)
+
+Create → evict lists
+
+Update → evict item + lists
+
+Delete → evict everything related
+
+Cache keys must include filters (page, size, threshold, category)
+
+## 7. Extension Guidelines
+
+When adding a new feature:
+
+Decide storage (JPA vs Mongo)
+
+Keep repository queries simple
+
+Use Specifications for search
+
+Define transaction boundaries in service
+
+Cache only if:
+
+Data is read frequently
+
+Data changes infrequently
+
+## 8. Final Notes
+
+This architecture:
+
+Prevents stale cache bugs
+
+Avoids transaction leaks
+
+Scales well
+
+Is interview‑ready & production‑ready
+
 The project includes a comprehensive implementation of an e-commerce domain model with entities for User, Product, Order, and OrderItem. The code demonstrates best practices in Spring development including proper layering, dependency injection, and exception handling.
 
 ## Contributing
