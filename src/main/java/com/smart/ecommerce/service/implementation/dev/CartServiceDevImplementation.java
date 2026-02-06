@@ -9,9 +9,9 @@ import com.smart.ecommerce.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -19,7 +19,10 @@ import java.util.UUID;
 
 @Service
 @Profile("dev")
-@Transactional
+@Transactional(
+        propagation = Propagation.REQUIRED,
+        rollbackFor = { RuntimeException.class, IllegalArgumentException.class }
+)
 public class CartServiceDevImplementation implements CartService {
 
     private final CartRepository cartRepository;
@@ -32,7 +35,7 @@ public class CartServiceDevImplementation implements CartService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
     @Cacheable(value = "cartByUser", key = "#user.userId")
     public Cart getCartByUser(User user) {
         return cartRepository.findByUser(user)
@@ -55,9 +58,7 @@ public class CartServiceDevImplementation implements CartService {
                 .findFirst();
 
         if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(
-                    existingItem.get().getQuantity() + quantity
-            );
+            existingItem.get().setQuantity(existingItem.get().getQuantity() + quantity);
         } else {
             CartItem item = new CartItem();
             item.setCart(cart);

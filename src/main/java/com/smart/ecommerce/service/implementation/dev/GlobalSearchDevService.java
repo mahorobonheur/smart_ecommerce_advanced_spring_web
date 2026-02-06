@@ -16,28 +16,35 @@ import com.smart.ecommerce.specifications.ProductSpecification;
 import com.smart.ecommerce.specifications.UserSpecification;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
-@Transactional
 @Profile("dev")
+@Transactional(
+        propagation = Propagation.REQUIRED,
+        rollbackFor = { RuntimeException.class, IllegalArgumentException.class }
+)
 public class GlobalSearchDevService implements GlobalSearchService {
+
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
 
-    public GlobalSearchDevService(UserRepository userRepository, ProductRepository productRepository, OrderRepository orderRepository) {
+    public GlobalSearchDevService(UserRepository userRepository,
+                                  ProductRepository productRepository,
+                                  OrderRepository orderRepository) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
     }
 
     @Override
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
     public GlobalSearchResponseDTO searchAll(String keyWord) {
+
         List<UserResponseDTO> users = userRepository
                 .findAll(UserSpecification.searchUsers(keyWord))
                 .stream()

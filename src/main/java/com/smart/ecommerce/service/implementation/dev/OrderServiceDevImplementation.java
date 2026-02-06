@@ -29,7 +29,6 @@ import java.util.*;
 
 @Service
 @Profile("dev")
-@Transactional
 public class OrderServiceDevImplementation implements OrderService {
 
     @Autowired
@@ -51,8 +50,15 @@ public class OrderServiceDevImplementation implements OrderService {
     private String stripeApiKey;
 
     @Override
-    @Transactional
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = {
+                    ResourceNotFoundException.class,
+                    IllegalStateException.class
+            }
+    )
     public Map<String, Object> checkout(UUID userId) throws StripeException {
+
         Stripe.apiKey = stripeApiKey;
 
         User user = userRepository.findById(userId)
@@ -96,7 +102,7 @@ public class OrderServiceDevImplementation implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "ordersPage", allEntries = true)
     public Order confirmPaymentAndCreateOrder(UUID userId, String paymentIntentId)
             throws StripeException {
@@ -137,7 +143,9 @@ public class OrderServiceDevImplementation implements OrderService {
         double total = 0;
 
         for (CartItem cartItem : cart.getItems()) {
+
             Product product = cartItem.getProduct();
+
             if (product.getStock() < cartItem.getQuantity()) {
                 throw new IllegalStateException(
                         "Stock changed. Not enough stock for: " + product.getProductName()
@@ -145,7 +153,14 @@ public class OrderServiceDevImplementation implements OrderService {
             }
 
             product.setStock(product.getStock() - cartItem.getQuantity());
-            ProductDTO productDTO = new ProductDTO(product.getProductName(), product.getPrice(), product.getStock(), product.getCategory().getCategoryId());
+
+            ProductDTO productDTO = new ProductDTO(
+                    product.getProductName(),
+                    product.getPrice(),
+                    product.getStock(),
+                    product.getCategory().getCategoryId()
+            );
+
             productService.updateProduct(product.getProductId(), productDTO);
 
             OrderItem orderItem = new OrderItem();
@@ -170,23 +185,30 @@ public class OrderServiceDevImplementation implements OrderService {
     @Cacheable(value = "orderById", key = "#orderId")
     public Order getOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
     }
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "ordersPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(
+            value = "ordersPage",
+            key = "#pageable.pageNumber + '-' + #pageable.pageSize"
+    )
     public Page<Order> allOrders(Pageable pageable) {
         return orderRepository.findAll(pageable);
     }
 
     @Override
-    @Transactional
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = IllegalStateException.class
+    )
     @Caching(evict = {
             @CacheEvict(value = "ordersPage", allEntries = true),
             @CacheEvict(value = "orderById", key = "#orderId")
     })
     public Order updateOrder(UUID orderId, OrderDTO dto) {
+
         Order existingOrder = getOrderById(orderId);
         OrderStatus currentStatus = existingOrder.getStatus();
 
@@ -200,27 +222,32 @@ public class OrderServiceDevImplementation implements OrderService {
         Set<OrderStatus> allowedNext =
                 allowedTransitions.getOrDefault(currentStatus, Set.of());
 
-        if(!allowedNext.contains(OrderStatus.valueOf(dto.getStatus()))){
-            throw new IllegalStateException("Invalid order state transition "
-                    + currentStatus + " to " + dto.getStatus() );
+        OrderStatus nextStatus = OrderStatus.valueOf(dto.getStatus());
+
+        if (!allowedNext.contains(nextStatus)) {
+            throw new IllegalStateException(
+                    "Invalid order state transition " + currentStatus + " to " + nextStatus
+            );
         }
 
-        existingOrder.setStatus(OrderStatus.valueOf(dto.getStatus()));
+        existingOrder.setStatus(nextStatus);
         existingOrder.setOrderDate(LocalDateTime.now());
 
         return orderRepository.save(existingOrder);
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @Caching(evict = {
             @CacheEvict(value = "ordersPage", allEntries = true),
             @CacheEvict(value = "orderById", key = "#orderId")
     })
     public void deleteOrder(UUID orderId) {
+
         if (!orderRepository.existsById(orderId)) {
-            throw new IllegalArgumentException("Order not found");
+            throw new ResourceNotFoundException("Order not found");
         }
+
         orderRepository.deleteById(orderId);
     }
 }

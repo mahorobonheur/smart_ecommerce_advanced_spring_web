@@ -33,6 +33,25 @@ public class ProductController {
         return ResponseEntity.ok(toResponse(product));
     }
 
+    @GetMapping("/by-category/{categoryName}")
+    public ResponseEntity<Page<ProductResponseDTO>> getByCategoryName(@PathVariable String categoryName, Pageable pageable){
+        Page<ProductResponseDTO> products = productService.findByCategory(categoryName, pageable).map(this::toResponse);
+        return ResponseEntity.ok(products);
+
+    }
+
+    @GetMapping("/between")
+    public ResponseEntity <Page<ProductResponseDTO>> findByPriceRange(@RequestParam double min, @RequestParam double max, Pageable pageable){
+        Page<ProductResponseDTO> products = productService.findByProductsRange(min, max, pageable).map(this::toResponse);
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/low-stock")
+    public ResponseEntity<Page<ProductResponseDTO>> findLowOnStockProduct(@RequestParam int threshold, Pageable pageable){
+        Page<ProductResponseDTO> products = productService.getLowOnStockProduct(threshold, pageable).map(this::toResponse);
+        return ResponseEntity.ok(products);
+    }
+
     @GetMapping
     @Operation(summary = "Get all products")
     public ResponseEntity<Page<ProductResponseDTO>> allProducts(Pageable pageable){
