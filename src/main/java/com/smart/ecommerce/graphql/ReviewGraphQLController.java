@@ -22,7 +22,7 @@ public class ReviewGraphQLController {
     private ReviewService reviewService;
 
     @MutationMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ReviewResponseDTO addReview(@Argument ReviewDTO input) {
         com.smart.ecommerce.dto.response.ReviewResponseDTO dto = reviewService.addReview(input);
         return dto;
@@ -38,7 +38,7 @@ public class ReviewGraphQLController {
     }
 
     @MutationMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ReviewResponseDTO updateReview(@Argument String reviewId,
                                           @Argument int rating,
                                           @Argument String comment) {

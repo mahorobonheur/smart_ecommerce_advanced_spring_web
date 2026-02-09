@@ -1,6 +1,7 @@
 package com.smart.ecommerce.config;
 
 import com.smart.ecommerce.service.CustomUserDetailService;
+import com.smart.ecommerce.service.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -18,12 +19,14 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private JwtUtil jwtUtil;
-    private CustomUserDetailService customUserDetailService;
+    private final JwtUtil jwtUtil;
+    private final CustomUserDetailService customUserDetailService;
+    private final TokenService tokenService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailService customUserDetailService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailService customUserDetailService, TokenService tokenService) {
         this.jwtUtil = jwtUtil;
         this.customUserDetailService = customUserDetailService;
+        this.tokenService = tokenService;
     }
 
     @Override
@@ -35,12 +38,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String header = request.getHeader("Authorization");
 
                 try {
+
                     if (header != null && header.startsWith("Bearer ")) {
                         String token = header.substring(7);
 
                         Claims claims = jwtUtil.extractClaims(token);
                         String email = claims.getSubject();
                         String role = claims.get("role", String.class);
+
+                        if (tokenService.isTokenRevoked(token)) {
+                            throw new JwtException("Token has been revoked");
+                        }
 
                         UserDetails userDetails = customUserDetailService.loadUserByUsername(email);
                         UsernamePasswordAuthenticationToken auth =

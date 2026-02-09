@@ -54,13 +54,12 @@ public class ProductGraphQLController {
     }
 
     @MutationMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ProductResponseDTO updateProduct(@Argument String productId, @Argument ProductDTO input){
         return toResponse(productService.updateProduct(UUID.fromString(productId), input));
     }
 
     @MutationMapping
-    @PreAuthorize("isAuthenticated()")
     public Boolean deleteProduct(@Argument String productId){
         productService.deleteProduct(UUID.fromString(productId));
         return true;

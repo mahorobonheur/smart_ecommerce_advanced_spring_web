@@ -25,6 +25,8 @@ public class OrderController {
 
 
     @PostMapping("/checkout/{userId}")
+    @Operation(summary = "Checkout",
+    description = "Here only customers who are authenticated can access it to checkout their orders")
     public ResponseEntity<Map<String, Object>> checkout(
             @PathVariable UUID userId
     ) throws StripeException {
@@ -34,6 +36,8 @@ public class OrderController {
     }
 
     @PostMapping("/confirm")
+    @Operation(summary = "Here is for confirming payment",
+    description = "Confirm payment, here you will use your paymentIntentId and then return result if payment is successful")
     public ResponseEntity<Order> confirmPayment(
             @RequestParam UUID userId,
             @RequestParam String paymentIntentId
@@ -44,18 +48,24 @@ public class OrderController {
     }
 
     @GetMapping("{orderId}")
+    @Operation(summary = "Get order by Id",
+    description = "This is for getting order by it's ID, and it requires authentication")
     public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable UUID orderId){
         Order order = orderService.getOrderById(orderId);
         return ResponseEntity.ok(toResponse(order));
     }
 
     @GetMapping
+    @Operation(summary = "Get all orders",
+    description = "Here is for getting all orders, and it is only for Admins")
     public ResponseEntity<Page<OrderResponseDTO>> getAllOrders(Pageable pageable){
         Page<OrderResponseDTO> orders = orderService.allOrders(pageable).map(this::toResponse);
         return ResponseEntity.ok(orders);
     }
 
     @PutMapping("{orderId}")
+    @Operation(summary = "Update order",
+    description = "Update order api to be used for updating orders, it can only be accessed for authenticated users")
     public ResponseEntity<OrderResponseDTO> updateOrder(@PathVariable UUID orderId, @RequestParam String status){
         OrderDTO dto = new OrderDTO();
         dto.setStatus(status);
@@ -64,6 +74,8 @@ public class OrderController {
     }
 
     @DeleteMapping("{orderId}")
+    @Operation(summary = "Delete order",
+    description = "Delete order only accessible by authorized users")
     public ResponseEntity<Void> deleteOrder(@PathVariable UUID orderId){
         orderService.deleteOrder(orderId);
         return ResponseEntity.noContent().build();
