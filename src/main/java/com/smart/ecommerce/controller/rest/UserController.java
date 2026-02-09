@@ -6,6 +6,7 @@ import com.smart.ecommerce.dto.request.UserDTO;
 import com.smart.ecommerce.dto.response.JwtResponse;
 import com.smart.ecommerce.dto.response.UserResponseDTO;
 import com.smart.ecommerce.model.User;
+import com.smart.ecommerce.service.TokenService;
 import com.smart.ecommerce.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -23,18 +25,21 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 public class UserController {
 
-    private AuthenticationManager authenticationManager;
-    private JwtUtil jwtUtil;
-    private UserService userService;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
+    private final UserService userService;
+    private final TokenService tokenService;
 
-    public UserController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService) {
+    public UserController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService, TokenService tokenService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
+        this.tokenService = tokenService;
     }
 
     @PostMapping
-    @Operation(summary = "Create a new user")
+    @Operation(summary = "Create a new user",
+    description = "This is an endpoint for creating user, and it is accessible to public without authentication")
     public ResponseEntity<UserResponseDTO> saveUser(
             @Parameter(description = "user info DTO") @Valid @RequestBody UserDTO dto){
         User user = userService.createUser(dto);
@@ -58,23 +63,35 @@ public class UserController {
 
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String header) {
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            tokenService.revokeToken(token);
+        }
+        return ResponseEntity.ok("Logged out successfully");
+    }
+
 
     @GetMapping("{userId}")
-    @Operation(summary = "Get user by Id")
+    @Operation(summary = "Get user by Id",
+    description = "This is public, so that site visitors can see traders and their products")
     public ResponseEntity<UserResponseDTO> getUserById(@PathVariable UUID userId){
         User user = userService.getUserById(userId);
         return ResponseEntity.ok(toResponse(user));
     }
 
     @GetMapping
-    @Operation(summary = "Get All users")
+    @Operation(summary = "Get All users",
+    description = "This is also public to show all users in the market")
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(Pageable pageable){
         Page<UserResponseDTO> users = userService.getAllUsers(pageable).map(this::toResponse);
         return ResponseEntity.ok(users);
     }
 
     @PutMapping("{userId}")
-    @Operation(summary = "Update user")
+    @Operation(summary = "Update user",
+    description = "This is an endpoint for updating, and it is secured for all, only accessible when you are authenticated")
     public ResponseEntity<UserResponseDTO> updateUser(@PathVariable UUID userId,
                                            @Valid @RequestBody UserDTO userDTO){
         User updateUser = userService.updateUser(userId, userDTO);
@@ -83,7 +100,8 @@ public class UserController {
     }
 
     @DeleteMapping("{userId}")
-    @Operation(summary = "Delete user")
+    @Operation(summary = "Delete user",
+    description = "To delete it will require users to be authenticated")
     public ResponseEntity<Void> deleteMapping(@PathVariable UUID userId){
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();

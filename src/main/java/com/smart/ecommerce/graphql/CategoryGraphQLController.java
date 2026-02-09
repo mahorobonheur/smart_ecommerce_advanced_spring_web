@@ -51,7 +51,7 @@ public class CategoryGraphQLController {
     }
 
     @MutationMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public CategoryResponseDTO createCategory(@Argument CategoryDTO input) {
         Category category = categoryService.addCategory(input);
         return toResponse(category);

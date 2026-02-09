@@ -10,7 +10,7 @@ public class OrderMapper {
                 order.getOrderId(),
                 order.getTotal(),
                 order.getStatus().name(),
-                order.getUser().getUserId(), // NOT whole user
+                order.getUser().getUserId(),
                 order.getOrderDate(),
                 order.getItems()
                         .stream()

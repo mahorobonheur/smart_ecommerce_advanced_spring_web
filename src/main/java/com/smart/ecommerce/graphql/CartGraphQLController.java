@@ -6,7 +6,6 @@ import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.User;
 import com.smart.ecommerce.repository.UserRepository;
 import com.smart.ecommerce.service.CartService;
-import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;

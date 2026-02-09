@@ -2,6 +2,7 @@ package com.smart.ecommerce.controller.rest;
 
 import com.smart.ecommerce.dto.response.GlobalSearchResponseDTO;
 import com.smart.ecommerce.service.GlobalSearchService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +19,8 @@ public class SearchController {
     private GlobalSearchService globalSearchService;
 
     @GetMapping("/global")
+    @Operation(summary = "Search using keyword",
+    description = "Put in your keyword, and you will find the results related to the keyword across the application. This is public.")
     public GlobalSearchResponseDTO globalSearch(@RequestParam String keyWord) {
         return globalSearchService.searchAll(keyWord);
     }

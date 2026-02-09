@@ -22,14 +22,16 @@ public class ReviewController {
     private ReviewService reviewService;
 
     @PostMapping
-    @Operation(summary = "Add review")
+    @Operation(summary = "Add review",
+    description = "This will be available only for authenticated users, with role of 'CUSTOMER' only.")
     public ResponseEntity<ReviewResponseDTO> addReview(@RequestBody ReviewDTO dto) {
         ReviewResponseDTO response = reviewService.addReview(dto);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
-    @Operation(summary = "Get all reviews with pagination")
+    @Operation(summary = "Get all reviews with pagination",
+    description = "This can be accessed by everyone whether authenticated or not, to be able to choose the right product")
     public ResponseEntity<Page<ReviewResponseDTO>> getAllReviews(Pageable pageable) {
         Page<ReviewResponseDTO> reviews = reviewService.getAllReviews(pageable)
                 .map(r -> new ReviewResponseDTO(
@@ -44,7 +46,8 @@ public class ReviewController {
     }
 
     @GetMapping("/product/{productId}")
-    @Operation(summary = "Get reviews by product")
+    @Operation(summary = "Get reviews by product",
+            description = "This will be available only for authenticated users, with role of 'CUSTOMER' only.")
     public ResponseEntity<List<ReviewResponseDTO>> getReviewsByProduct(@PathVariable String productId) {
         List<ReviewResponseDTO> reviews = reviewService.getReviewsByProductId(productId)
                 .stream()
@@ -61,7 +64,8 @@ public class ReviewController {
     }
 
     @PutMapping("/{reviewId}")
-    @Operation(summary = "Update review")
+    @Operation(summary = "Update review",
+            description = "This will be available only for authenticated users, with role of 'CUSTOMER' only.")
     public ResponseEntity<ReviewResponseDTO> updateReview(@PathVariable String reviewId,
                                                           @RequestBody ReviewDTO dto) {
         Review updated = reviewService.updateReview(reviewId, dto.getRating(), dto.getComment());
@@ -77,7 +81,8 @@ public class ReviewController {
     }
 
     @DeleteMapping("/{reviewId}")
-    @Operation(summary = "Delete review")
+    @Operation(summary = "Delete review",
+            description = "This will be available only for authenticated users, with role of 'CUSTOMER' only.")
     public ResponseEntity<Void> deleteReview(@PathVariable String reviewId) {
         reviewService.deleteReview(reviewId);
         return ResponseEntity.noContent().build();
