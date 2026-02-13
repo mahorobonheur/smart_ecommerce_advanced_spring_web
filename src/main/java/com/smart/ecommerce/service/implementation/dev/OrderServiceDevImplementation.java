@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Service
 @Profile("dev")
@@ -49,6 +51,21 @@ public class OrderServiceDevImplementation implements OrderService {
     @Value("${stripe.api.key}")
     private String stripeApiKey;
 
+    @Autowired
+    private Executor asyncExecutor;
+
+
+    public CompletableFuture<Map<String, Object>> checkoutAsync(UUID userId){
+       return CompletableFuture.supplyAsync(() ->
+               {
+                   try{
+                       return checkout(userId);
+                   } catch (Exception e) {
+                       throw new RuntimeException(e);
+                   }
+               }, asyncExecutor
+               );
+    }
     @Override
     @Transactional(
             rollbackFor = Exception.class,

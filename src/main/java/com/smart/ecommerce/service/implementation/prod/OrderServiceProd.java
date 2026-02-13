@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Service
 @Profile("prod")
@@ -48,6 +50,21 @@ public class OrderServiceProd implements OrderService {
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
+
+    @Autowired
+    private Executor asyncExecutor;
+
+    public CompletableFuture<Map<String, Object>> checkoutAsync(UUID userId){
+        return CompletableFuture.supplyAsync(() ->
+                {
+                    try{
+                        return checkout(userId);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }, asyncExecutor
+        );
+    }
 
 
     @Override

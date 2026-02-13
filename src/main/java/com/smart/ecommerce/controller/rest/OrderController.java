@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -27,12 +28,12 @@ public class OrderController {
     @PostMapping("/checkout/{userId}")
     @Operation(summary = "Checkout",
     description = "Here only customers who are authenticated can access it to checkout their orders")
-    public ResponseEntity<Map<String, Object>> checkout(
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> checkout(
             @PathVariable UUID userId
     ) throws StripeException {
 
-        Map<String, Object> response = orderService.checkout(userId);
-        return ResponseEntity.ok(response);
+        return orderService.checkoutAsync(userId)
+                .thenApply(ResponseEntity::ok);
     }
 
     @PostMapping("/confirm")

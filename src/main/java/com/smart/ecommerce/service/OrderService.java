@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public interface OrderService {
     Order getOrderById(UUID orderId);
@@ -21,4 +22,5 @@ public interface OrderService {
     Map<String, Object> checkout(UUID userId) throws StripeException;
 
     Order confirmPaymentAndCreateOrder(UUID userId, String paymentIntentId) throws StripeException;
+    CompletableFuture<Map<String, Object>> checkoutAsync(UUID userId);
 }

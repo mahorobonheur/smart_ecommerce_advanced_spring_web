@@ -3,7 +3,7 @@ package com.smart.ecommerce.config;
 import com.smart.ecommerce.model.Role;
 import com.smart.ecommerce.model.User;
 import com.smart.ecommerce.repository.UserRepository;
-import jakarta.servlet.FilterChain;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,7 +47,7 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
                 });
 
                  String token = jwtUtil.generateToken(user);
-                 response.sendRedirect( "http://localhost:5172/oauth2/success?token=" + token);
+                 response.sendRedirect( "http://localhost:8080/oauth2/success?token=" + token);
            }
 
 }
