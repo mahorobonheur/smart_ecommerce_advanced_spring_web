@@ -11,18 +11,25 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 @Profile("dev")
 public class ReviewServiceDevImplementation implements ReviewService {
 
-    @Autowired
-    private ReviewRepository reviewRepository;
+
+    private final ReviewRepository reviewRepository;
+    private final List<ReviewResponseDTO> recentReviews = new CopyOnWriteArrayList<>();
+    private static final int MAX_NEW_REVIEWS = 100;
+    public ReviewServiceDevImplementation(ReviewRepository reviewRepository) {
+        this.reviewRepository = reviewRepository;
+    }
 
     @Override
     @Transactional(
@@ -46,7 +53,13 @@ public class ReviewServiceDevImplementation implements ReviewService {
         );
 
         Review savedReview = reviewRepository.save(review);
-        return toResponse(savedReview);
+        ReviewResponseDTO newReview = toResponse(savedReview);
+
+        recentReviews.add(newReview);
+        if(recentReviews.size() > MAX_NEW_REVIEWS){
+            recentReviews.remove(0);
+        }
+        return newReview;
     }
 
     @Override
@@ -62,9 +75,35 @@ public class ReviewServiceDevImplementation implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "reviewsByProduct", key ="#productId")
-    public List<Review> getReviewsByProductId(String productId) {
-        return reviewRepository.findByProductId(productId);
+    public Page<Review> getReviewsByProductId(Pageable pageable, String productId) {
+
+        List<ReviewResponseDTO> inMemory = recentReviews.stream()
+                .filter(r -> r.getProductId().equals(productId))
+                .toList();
+
+        if (!inMemory.isEmpty()) {
+            List<Review> reviewList = inMemory.stream()
+                    .map(r -> {
+                        Review review = new Review();
+                        review.setReviewId(r.getReviewId());
+                        review.setProductId(r.getProductId());
+                        review.setUserId(r.getUserId());
+                        review.setRating(r.getRating());
+                        review.setComment(r.getComment());
+                        review.setCreatedAt(r.getCreatedAt());
+                        return review;
+                    })
+                    .toList();
+
+            int start = (int) pageable.getOffset();
+            int end = Math.min((start + pageable.getPageSize()), reviewList.size());
+            List<Review> sublist = reviewList.subList(start, end);
+
+            return new PageImpl<>(sublist, pageable, reviewList.size());
+        }
+        return reviewRepository.findByProductId(productId, pageable);
     }
+
 
     @Override
     @Transactional(
@@ -100,6 +139,11 @@ public class ReviewServiceDevImplementation implements ReviewService {
         }
 
         reviewRepository.deleteById(reviewId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReviewResponseDTO> getRecentReviews() {
+        return List.copyOf(recentReviews);
     }
 
     private ReviewResponseDTO toResponse(Review review) {

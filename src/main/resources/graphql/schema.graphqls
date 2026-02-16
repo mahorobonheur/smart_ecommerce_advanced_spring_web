@@ -20,7 +20,12 @@ type Query {
     allOrders(page: Int!, size: Int!): OrderPageDTO
 
     # Reviews
-    reviewsByProduct(productId: ID!): [ReviewResponseDTO!]!
+    reviewsByProduct(
+            productId: ID!
+            page: Int = 0
+            size: Int = 10
+            sort: String = "createdAt,desc"
+        ): ReviewsPageDTO!
 }
 
 type Mutation {
@@ -183,6 +188,14 @@ type ProductsPageDTO {
 
 type OrderPageDTO {
     products: [OrderResponseDTO]!
+    totalElements: Int!
+    totalPages: Int!
+    page: Int!
+    size: Int!
+}
+
+type ReviewsPageDTO {
+    reviews: [ReviewResponseDTO!]!
     totalElements: Int!
     totalPages: Int!
     page: Int!

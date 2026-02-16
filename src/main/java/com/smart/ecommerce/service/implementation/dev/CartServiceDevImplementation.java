@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Profile("dev")
@@ -34,6 +35,9 @@ public class CartServiceDevImplementation implements CartService {
         this.cartRepository = cartRepository;
     }
 
+    private final ConcurrentHashMap<UUID, Object> cartLocks = new ConcurrentHashMap<>();
+
+
     @Override
     @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
     @Cacheable(value = "cartByUser", key = "#user.userId")
@@ -51,23 +55,27 @@ public class CartServiceDevImplementation implements CartService {
     @CacheEvict(value = "cartByUser", key = "#user.userId")
     public Cart addItemToCart(User user, UUID productId, int quantity) {
 
-        Cart cart = getCartByUser(user);
+        Object lock = cartLocks.computeIfAbsent(user.getUserId(), k -> new Object());
 
-        Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getProductId().equals(productId))
-                .findFirst();
+        synchronized (lock) {
+            Cart cart = getCartByUser(user);
 
-        if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(existingItem.get().getQuantity() + quantity);
-        } else {
-            CartItem item = new CartItem();
-            item.setCart(cart);
-            item.setQuantity(quantity);
-            item.setProduct(productService.getProductById(productId));
-            cart.getItems().add(item);
+            Optional<CartItem> existingItem = cart.getItems().stream()
+                    .filter(item -> item.getProduct().getProductId().equals(productId))
+                    .findFirst();
+
+            if (existingItem.isPresent()) {
+                existingItem.get().setQuantity(existingItem.get().getQuantity() + quantity);
+            } else {
+                CartItem item = new CartItem();
+                item.setCart(cart);
+                item.setQuantity(quantity);
+                item.setProduct(productService.getProductById(productId));
+                cart.getItems().add(item);
+            }
+
+            return cartRepository.save(cart);
         }
-
-        return cartRepository.save(cart);
     }
 
     @Override
@@ -92,4 +100,6 @@ public class CartServiceDevImplementation implements CartService {
         cart.getItems().clear();
         cartRepository.save(cart);
     }
+
+
 }

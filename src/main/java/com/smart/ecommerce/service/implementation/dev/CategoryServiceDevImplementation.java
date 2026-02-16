@@ -26,8 +26,12 @@ import java.util.UUID;
 )
 public class CategoryServiceDevImplementation implements CategoryService {
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+
+    private final CategoryRepository categoryRepository;
+
+    public CategoryServiceDevImplementation(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
 
     @Override
     @Transactional

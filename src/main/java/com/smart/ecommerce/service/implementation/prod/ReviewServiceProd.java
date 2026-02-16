@@ -34,8 +34,8 @@ public class ReviewServiceProd implements ReviewService {
     }
 
     @Override
-    public List<Review> getReviewsByProductId(String productId) {
-        return reviewRepository.findByProductId(productId);
+    public Page<Review> getReviewsByProductId(Pageable pageable, String productId) {
+        return reviewRepository.findByProductId(productId, pageable);
     }
 
     @Override

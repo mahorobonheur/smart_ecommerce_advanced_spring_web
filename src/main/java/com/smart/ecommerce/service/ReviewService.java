@@ -11,7 +11,7 @@ import java.util.List;
 public interface ReviewService {
     ReviewResponseDTO addReview(ReviewDTO dto);
     Page<Review> getAllReviews(Pageable pageable);
-    List<Review> getReviewsByProductId(String productId);
+    Page<Review> getReviewsByProductId(Pageable pageable, String productId);
     Review updateReview(String reviewId, int rating, String comment);
     void deleteReview(String reviewId);
 }

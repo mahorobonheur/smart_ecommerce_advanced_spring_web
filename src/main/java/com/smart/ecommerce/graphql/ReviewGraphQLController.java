@@ -2,10 +2,13 @@ package com.smart.ecommerce.graphql;
 
 import com.smart.ecommerce.dto.request.ReviewDTO;
 import com.smart.ecommerce.dto.response.ReviewResponseDTO;
+import com.smart.ecommerce.dto.response.ReviewsPageDTO;
 import com.smart.ecommerce.model.Review;
 import com.smart.ecommerce.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -30,12 +33,41 @@ public class ReviewGraphQLController {
 
     @QueryMapping
     @PreAuthorize("permitAll()")
-    public List<ReviewResponseDTO> reviewsByProduct(@Argument String productId) {
-        return reviewService.getReviewsByProductId(productId)
+    public ReviewsPageDTO reviewsByProduct(
+            @Argument String productId,
+            @Argument int page,
+            @Argument int size,
+            @Argument String sort
+    ) {
+
+        String[] sortParts = sort.split(",");
+        org.springframework.data.domain.Sort springSort = org.springframework.data.domain.Sort.by(
+                sortParts[0]
+        );
+        if (sortParts.length > 1 && sortParts[1].equalsIgnoreCase("desc")) {
+            springSort = springSort.descending();
+        } else {
+            springSort = springSort.ascending();
+        }
+
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, springSort);
+
+        Page<Review> reviewsPage = (Page<Review>) reviewService.getReviewsByProductId(pageable, productId);
+
+        List<ReviewResponseDTO> dtoList = reviewsPage.getContent()
                 .stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
+
+        return new ReviewsPageDTO(
+                dtoList,
+                (int) reviewsPage.getTotalElements(),
+                reviewsPage.getTotalPages(),
+                page,
+                size
+        );
     }
+
 
     @MutationMapping
     @PreAuthorize("hasRole('CUSTOMER')")

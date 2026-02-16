@@ -26,14 +26,17 @@ import java.util.UUID;
 @Profile("dev")
 public class ProductServiceDevImplementation implements ProductService {
 
-    @Autowired
-    private InventoryService inventoryService;
+    private final InventoryService inventoryService;
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
+
+    public ProductServiceDevImplementation(InventoryService inventoryService, ProductRepository productRepository, CategoryRepository categoryRepository) {
+        this.inventoryService = inventoryService;
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+    }
 
     @Override
     @Transactional(

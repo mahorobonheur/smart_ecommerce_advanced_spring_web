@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/graphiql").hasRole("ADMIN")
+                        .requestMatchers("/graphiql").permitAll()
                         .requestMatchers( "/oauth2/**",
                                 "/login/oauth2/**",
                                 "/swagger-ui/**", "/v3/**",

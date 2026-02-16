@@ -35,11 +35,15 @@ import java.util.UUID;
 )
 public class InventoryServiceDevImplementation implements InventoryService {
 
-    @Autowired
-    private InventoryRepository inventoryRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final InventoryRepository inventoryRepository;
+
+    private final ProductRepository productRepository;
+
+    public InventoryServiceDevImplementation(InventoryRepository inventoryRepository, ProductRepository productRepository) {
+        this.inventoryRepository = inventoryRepository;
+        this.productRepository = productRepository;
+    }
 
     @Override
     @Transactional

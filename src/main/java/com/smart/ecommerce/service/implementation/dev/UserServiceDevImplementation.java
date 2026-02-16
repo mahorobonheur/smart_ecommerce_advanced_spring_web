@@ -26,12 +26,14 @@ import java.util.UUID;
 @Profile("dev")
 public class UserServiceDevImplementation implements UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
+    public UserServiceDevImplementation(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Transactional(
             rollbackFor = Exception.class,

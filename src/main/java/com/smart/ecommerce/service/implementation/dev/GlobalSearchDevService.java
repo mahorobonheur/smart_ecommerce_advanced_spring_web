@@ -17,6 +17,7 @@ import com.smart.ecommerce.service.GlobalSearchService;
 import com.smart.ecommerce.specifications.OrderSpecification;
 import com.smart.ecommerce.specifications.ProductSpecification;
 import com.smart.ecommerce.specifications.UserSpecification;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -26,11 +27,13 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+@Slf4j
 @Service
 @Profile("dev")
 @Transactional(
         readOnly = true
 )
+
 public class GlobalSearchDevService implements GlobalSearchService {
 
     private final UserRepository userRepository;

@@ -15,6 +15,7 @@ import java.util.UUID;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpecificationExecutor<Product> {
 
+
     Page<Product> findByCategory_CategoryName(String categoryName, Pageable pageable);
     Page<Product> findByPriceBetween(double min, double max, Pageable pageable);
     @Query(

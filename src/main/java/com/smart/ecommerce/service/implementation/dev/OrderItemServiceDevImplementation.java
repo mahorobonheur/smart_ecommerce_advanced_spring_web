@@ -33,11 +33,14 @@ import java.util.UUID;
 )
 public class OrderItemServiceDevImplementation implements OrderItemService {
 
-    @Autowired
-    private OrderItemRepository orderItemRepository;
+    private final OrderItemRepository orderItemRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
+
+    public OrderItemServiceDevImplementation(OrderItemRepository orderItemRepository, ProductRepository productRepository) {
+        this.orderItemRepository = orderItemRepository;
+        this.productRepository = productRepository;
+    }
 
     @Override
     @Transactional

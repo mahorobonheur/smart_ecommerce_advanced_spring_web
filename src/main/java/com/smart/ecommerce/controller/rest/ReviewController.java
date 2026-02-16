@@ -48,8 +48,8 @@ public class ReviewController {
     @GetMapping("/product/{productId}")
     @Operation(summary = "Get reviews by product",
             description = "This will be available only for authenticated users, with role of 'CUSTOMER' only.")
-    public ResponseEntity<List<ReviewResponseDTO>> getReviewsByProduct(@PathVariable String productId) {
-        List<ReviewResponseDTO> reviews = reviewService.getReviewsByProductId(productId)
+    public ResponseEntity<List<ReviewResponseDTO>> getReviewsByProduct(@PathVariable String productId, Pageable pageable) {
+        List<ReviewResponseDTO> reviews = reviewService.getReviewsByProductId(pageable, productId)
                 .stream()
                 .map(r -> new ReviewResponseDTO(
                         r.getReviewId(),

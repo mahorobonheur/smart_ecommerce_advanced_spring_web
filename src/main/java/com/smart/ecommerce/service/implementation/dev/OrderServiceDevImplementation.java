@@ -6,6 +6,7 @@ import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.*;
 import com.smart.ecommerce.repository.CartRepository;
 import com.smart.ecommerce.repository.OrderRepository;
+import com.smart.ecommerce.repository.ProductRepository;
 import com.smart.ecommerce.repository.UserRepository;
 import com.smart.ecommerce.service.OrderItemService;
 import com.smart.ecommerce.service.ProductService;
@@ -13,6 +14,7 @@ import com.smart.ecommerce.service.OrderService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
@@ -21,6 +23,7 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,35 +51,32 @@ public class OrderServiceDevImplementation implements OrderService {
     @Autowired
     private CartRepository cartRepository;
 
-    @Value("${stripe.api.key}")
-    private String stripeApiKey;
+    @Autowired
+    private ProductRepository productRepository;
 
     @Autowired
     private Executor asyncExecutor;
 
+    @Value("${stripe.api.key}")
+    private String stripeApiKey;
 
-    public CompletableFuture<Map<String, Object>> checkoutAsync(UUID userId){
-       return CompletableFuture.supplyAsync(() ->
-               {
-                   try{
-                       return checkout(userId);
-                   } catch (Exception e) {
-                       throw new RuntimeException(e);
-                   }
-               }, asyncExecutor
-               );
+    @PostConstruct
+    public void init() {
+        Stripe.apiKey = stripeApiKey; // initialize Stripe once
     }
-    @Override
-    @Transactional(
-            rollbackFor = Exception.class,
-            noRollbackFor = {
-                    ResourceNotFoundException.class,
-                    IllegalStateException.class
-            }
-    )
-    public Map<String, Object> checkout(UUID userId) throws StripeException {
 
-        Stripe.apiKey = stripeApiKey;
+    public CompletableFuture<Map<String, Object>> checkoutAsync(UUID userId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return checkout(userId);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, asyncExecutor);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> checkout(UUID userId) throws StripeException {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -118,15 +118,13 @@ public class OrderServiceDevImplementation implements OrderService {
         );
     }
 
-    @Override
+
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "ordersPage", allEntries = true)
-    public Order confirmPaymentAndCreateOrder(UUID userId, String paymentIntentId)
-            throws StripeException {
-
-        Stripe.apiKey = stripeApiKey;
+    public Order confirmPaymentAndCreateOrder(UUID userId, String paymentIntentId) throws StripeException {
 
         PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+
 
         if (!"succeeded".equals(intent.getStatus())) {
             Map<String, Object> confirmParams = new HashMap<>();
@@ -136,9 +134,7 @@ public class OrderServiceDevImplementation implements OrderService {
         }
 
         if (!"succeeded".equals(intent.getStatus())) {
-            throw new IllegalStateException(
-                    "Payment not completed. Current status: " + intent.getStatus()
-            );
+            throw new IllegalStateException("Payment not completed. Status: " + intent.getStatus());
         }
 
         User user = userRepository.findById(userId)
@@ -157,47 +153,60 @@ public class OrderServiceDevImplementation implements OrderService {
         order.setStatus(OrderStatus.PAID);
         order.setPaymentIntentId(paymentIntentId);
 
-        double total = 0;
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         for (CartItem cartItem : cart.getItems()) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
 
-            Product product = cartItem.getProduct();
+                Product product = productRepository.findById(cartItem.getProduct().getProductId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-            if (product.getStock() < cartItem.getQuantity()) {
-                throw new IllegalStateException(
-                        "Stock changed. Not enough stock for: " + product.getProductName()
-                );
-            }
+                synchronized (product.getProductId().toString().intern()) {
+                    if (product.getStock() < cartItem.getQuantity()) {
+                        throw new IllegalStateException("Stock changed. Not enough stock for: " + product.getProductName());
+                    }
 
-            product.setStock(product.getStock() - cartItem.getQuantity());
+                    product.setStock(product.getStock() - cartItem.getQuantity());
 
-            ProductDTO productDTO = new ProductDTO(
-                    product.getProductName(),
-                    product.getPrice(),
-                    product.getStock(),
-                    product.getCategory().getCategoryId()
-            );
+                    ProductDTO productDTO = new ProductDTO(
+                            product.getProductName(),
+                            product.getPrice(),
+                            product.getStock(),
+                            product.getCategory().getCategoryId()
+                    );
 
-            productService.updateProduct(product.getProductId(), productDTO);
+                    productService.updateProduct(product.getProductId(), productDTO);
 
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setPrice(product.getPrice());
+                    OrderItem orderItem = new OrderItem();
+                    orderItem.setOrder(order);
+                    orderItem.setProduct(product);
+                    orderItem.setQuantity(cartItem.getQuantity());
+                    orderItem.setPrice(product.getPrice());
 
-            order.getItems().add(orderItem);
-            total += orderItem.getPrice() * orderItem.getQuantity();
+                    order.getItems().add(orderItem);
+                }
+
+            }, asyncExecutor);
+
+            futures.add(future);
         }
 
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        double total = order.getItems().stream()
+                .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                .sum();
+
         order.setTotal(total);
+
         cart.getItems().clear();
         cartRepository.save(cart);
+        Order savedOrder = orderRepository.save(order);
+        afterOrderCreatedAsync(savedOrder);
 
-        return orderRepository.save(order);
+        return savedOrder;
     }
 
-    @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "orderById", key = "#orderId")
     public Order getOrderById(UUID orderId) {
@@ -205,21 +214,13 @@ public class OrderServiceDevImplementation implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
     }
 
-    @Override
     @Transactional(readOnly = true)
-    @Cacheable(
-            value = "ordersPage",
-            key = "#pageable.pageNumber + '-' + #pageable.pageSize"
-    )
+    @Cacheable(value = "ordersPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Order> allOrders(Pageable pageable) {
         return orderRepository.findAll(pageable);
     }
 
-    @Override
-    @Transactional(
-            rollbackFor = Exception.class,
-            noRollbackFor = IllegalStateException.class
-    )
+    @Transactional(rollbackFor = Exception.class)
     @Caching(evict = {
             @CacheEvict(value = "ordersPage", allEntries = true),
             @CacheEvict(value = "orderById", key = "#orderId")
@@ -236,9 +237,7 @@ public class OrderServiceDevImplementation implements OrderService {
                 OrderStatus.CANCELLED, Set.of()
         );
 
-        Set<OrderStatus> allowedNext =
-                allowedTransitions.getOrDefault(currentStatus, Set.of());
-
+        Set<OrderStatus> allowedNext = allowedTransitions.getOrDefault(currentStatus, Set.of());
         OrderStatus nextStatus = OrderStatus.valueOf(dto.getStatus());
 
         if (!allowedNext.contains(nextStatus)) {
@@ -253,7 +252,6 @@ public class OrderServiceDevImplementation implements OrderService {
         return orderRepository.save(existingOrder);
     }
 
-    @Override
     @Transactional(rollbackFor = Exception.class)
     @Caching(evict = {
             @CacheEvict(value = "ordersPage", allEntries = true),
@@ -267,4 +265,12 @@ public class OrderServiceDevImplementation implements OrderService {
 
         orderRepository.deleteById(orderId);
     }
+
+    @Async
+    public void afterOrderCreatedAsync(Order order) {
+        System.out.println("Order confirmed: " + order.getOrderId());
+        System.out.println("Notify warehouse");
+        System.out.println("Send confirmation email");
+    }
+
 }
