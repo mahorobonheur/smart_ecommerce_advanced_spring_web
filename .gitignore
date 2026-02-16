@@ -35,5 +35,6 @@ build/
 ### Environment variables
 .env
 
-#### Ignore Security Logs
-logs/security.log
+# Logs
+logs/
+*.log
