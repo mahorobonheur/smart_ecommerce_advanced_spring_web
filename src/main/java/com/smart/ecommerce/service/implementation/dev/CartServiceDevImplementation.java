@@ -6,6 +6,7 @@ import com.smart.ecommerce.model.User;
 import com.smart.ecommerce.repository.CartRepository;
 import com.smart.ecommerce.service.CartService;
 import com.smart.ecommerce.service.ProductService;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
         propagation = Propagation.REQUIRED,
         rollbackFor = { RuntimeException.class, IllegalArgumentException.class }
 )
+@Data
 public class CartServiceDevImplementation implements CartService {
 
     private final CartRepository cartRepository;

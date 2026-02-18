@@ -82,26 +82,33 @@ public class ReviewServiceDevImplementation implements ReviewService {
                 .toList();
 
         if (!inMemory.isEmpty()) {
-            List<Review> reviewList = inMemory.stream()
-                    .map(r -> {
-                        Review review = new Review();
-                        review.setReviewId(r.getReviewId());
-                        review.setProductId(r.getProductId());
-                        review.setUserId(r.getUserId());
-                        review.setRating(r.getRating());
-                        review.setComment(r.getComment());
-                        review.setCreatedAt(r.getCreatedAt());
-                        return review;
-                    })
-                    .toList();
-
+            List<Review> reviewList = convertToReviews(inMemory);
             int start = (int) pageable.getOffset();
             int end = Math.min((start + pageable.getPageSize()), reviewList.size());
-            List<Review> sublist = reviewList.subList(start, end);
 
-            return new PageImpl<>(sublist, pageable, reviewList.size());
+            if (start < reviewList.size()) {
+                List<Review> sublist = reviewList.subList(start, end);
+                return new PageImpl<>(sublist, pageable, reviewList.size());
+            }
+            return new PageImpl<>(List.of(), pageable, reviewList.size());
         }
+
         return reviewRepository.findByProductId(productId, pageable);
+    }
+
+    private List<Review> convertToReviews(List<ReviewResponseDTO> dtos) {
+        return dtos.stream()
+                .map(dto -> {
+                    Review review = new Review();
+                    review.setReviewId(dto.getReviewId());
+                    review.setProductId(dto.getProductId());
+                    review.setUserId(dto.getUserId());
+                    review.setRating(dto.getRating());
+                    review.setComment(dto.getComment());
+                    review.setCreatedAt(dto.getCreatedAt());
+                    return review;
+                })
+                .toList();
     }
 
 

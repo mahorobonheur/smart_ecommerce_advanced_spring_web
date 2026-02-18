@@ -10,6 +10,7 @@ import com.smart.ecommerce.service.TokenService;
 import com.smart.ecommerce.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -48,19 +50,16 @@ public class UserController {
 
     @PostMapping("/login")
     @Operation(summary = "Login API")
-    public JwtResponse login(@RequestBody LoginRequestDto loginRequestDto){
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequestDto.getEmail(),
-                        loginRequestDto.getPassword()
-                )
-        );
+    public JwtResponse login(@RequestBody LoginRequestDto loginRequestDto, HttpServletRequest request){
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+        token.setDetails(new WebAuthenticationDetails(request));
+
+        authenticationManager.authenticate(token);
 
         User user = userService.findByEmail(loginRequestDto.getEmail());
-        String token = jwtUtil.generateToken(user);
-
-        return new JwtResponse(token, "Bearer", user.getEmail(), user.getRole().name());
-
+        String jwt = jwtUtil.generateToken(user);
+        return new JwtResponse(jwt, "Bearer", user.getEmail(), user.getRole().name());
     }
 
     @PostMapping("/logout")
