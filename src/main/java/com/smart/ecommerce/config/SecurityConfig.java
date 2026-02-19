@@ -41,8 +41,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/graphiql").hasRole("ADMIN")
                         .requestMatchers( "/oauth2/**",
-                                "/login/oauth2/**",
-                                "/swagger-ui/**", "/v3/**",
+                                "/login/oauth2/**"
+                               ).permitAll()
+                        .requestMatchers( "/swagger-ui/**", "/v3/**",
                                 "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.POST, "/graphql").permitAll()
                         .requestMatchers(HttpMethod.POST,
