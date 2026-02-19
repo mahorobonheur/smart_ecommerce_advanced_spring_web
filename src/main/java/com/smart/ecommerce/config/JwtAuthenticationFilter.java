@@ -35,44 +35,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-                String header = request.getHeader("Authorization");
+        String header = request.getHeader("Authorization");
 
-                try {
+        try {
 
-                    if (header != null && header.startsWith("Bearer ")) {
-                        String token = header.substring(7);
+            if (header != null && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
 
-                        Claims claims = jwtUtil.extractClaims(token);
-                        String email = claims.getSubject();
-                        String role = claims.get("role", String.class);
+                Claims claims = jwtUtil.extractClaims(token);
+                String email = claims.getSubject();
+                String role = claims.get("role", String.class);
 
-                        if (tokenService.isTokenRevoked(token)) {
-                            throw new JwtException("Token has been revoked");
-                        }
-
-                        UserDetails userDetails = customUserDetailService.loadUserByUsername(email);
-                        UsernamePasswordAuthenticationToken auth =
-                                new UsernamePasswordAuthenticationToken(
-                                        userDetails,
-                                        null,
-                                        userDetails.getAuthorities()
-                                );
-
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                    }
-                } catch (JwtException ex){
-                    SecurityContextHolder.clearContext();
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.getWriter().write(
-                            """
-                {
-                  "error": "Invalid or expired JWT token"
+                if (tokenService.isTokenRevoked(token)) {
+                    throw new JwtException("Token has been revoked");
                 }
-            """
-                    );
-                    return;
-                }
-                filterChain.doFilter(request, response);
+
+                UserDetails userDetails = customUserDetailService.loadUserByUsername(email);
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        } catch (JwtException ex){
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                    """
+        {
+          "error": "Invalid or expired JWT token"
+        }
+    """
+            );
+            return;
+        }
+        filterChain.doFilter(request, response);
     }
 }

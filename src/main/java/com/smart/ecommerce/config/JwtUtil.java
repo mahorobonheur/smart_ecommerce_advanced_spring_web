@@ -19,7 +19,7 @@ public class JwtUtil {
     private SecretKey secretKey;
     @PostConstruct
     private void init(){
-       this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(User user){

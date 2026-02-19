@@ -10,6 +10,7 @@ import com.smart.ecommerce.service.TokenService;
 import com.smart.ecommerce.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -39,7 +41,7 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "Create a new user",
-    description = "This is an endpoint for creating user, and it is accessible to public without authentication")
+            description = "This is an endpoint for creating user, and it is accessible to public without authentication")
     public ResponseEntity<UserResponseDTO> saveUser(
             @Parameter(description = "user info DTO") @Valid @RequestBody UserDTO dto){
         User user = userService.createUser(dto);
@@ -48,19 +50,16 @@ public class UserController {
 
     @PostMapping("/login")
     @Operation(summary = "Login API")
-    public JwtResponse login(@RequestBody LoginRequestDto loginRequestDto){
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequestDto.getEmail(),
-                        loginRequestDto.getPassword()
-                )
-        );
+    public JwtResponse login(@RequestBody LoginRequestDto loginRequestDto, HttpServletRequest request){
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+        token.setDetails(new WebAuthenticationDetails(request));
+
+        authenticationManager.authenticate(token);
 
         User user = userService.findByEmail(loginRequestDto.getEmail());
-        String token = jwtUtil.generateToken(user);
-
-        return new JwtResponse(token, "Bearer", user.getEmail(), user.getRole().name());
-
+        String jwt = jwtUtil.generateToken(user);
+        return new JwtResponse(jwt, "Bearer", user.getEmail(), user.getRole().name());
     }
 
     @PostMapping("/logout")
@@ -75,7 +74,7 @@ public class UserController {
 
     @GetMapping("{userId}")
     @Operation(summary = "Get user by Id",
-    description = "This is public, so that site visitors can see traders and their products")
+            description = "This is public, so that site visitors can see traders and their products")
     public ResponseEntity<UserResponseDTO> getUserById(@PathVariable UUID userId){
         User user = userService.getUserById(userId);
         return ResponseEntity.ok(toResponse(user));
@@ -83,7 +82,7 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "Get All users",
-    description = "This is also public to show all users in the market")
+            description = "This is also public to show all users in the market")
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(Pageable pageable){
         Page<UserResponseDTO> users = userService.getAllUsers(pageable).map(this::toResponse);
         return ResponseEntity.ok(users);
@@ -91,9 +90,9 @@ public class UserController {
 
     @PutMapping("{userId}")
     @Operation(summary = "Update user",
-    description = "This is an endpoint for updating, and it is secured for all, only accessible when you are authenticated")
+            description = "This is an endpoint for updating, and it is secured for all, only accessible when you are authenticated")
     public ResponseEntity<UserResponseDTO> updateUser(@PathVariable UUID userId,
-                                           @Valid @RequestBody UserDTO userDTO){
+                                                      @Valid @RequestBody UserDTO userDTO){
         User updateUser = userService.updateUser(userId, userDTO);
         return ResponseEntity.ok(toResponse(updateUser));
 
@@ -101,7 +100,7 @@ public class UserController {
 
     @DeleteMapping("{userId}")
     @Operation(summary = "Delete user",
-    description = "To delete it will require users to be authenticated")
+            description = "To delete it will require users to be authenticated")
     public ResponseEntity<Void> deleteMapping(@PathVariable UUID userId){
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
