@@ -36,4 +36,5 @@ build/
 .env
 
 ### Security Log file
-logs/**
+logs/
+*.log
