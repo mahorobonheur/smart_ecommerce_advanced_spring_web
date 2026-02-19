@@ -10,52 +10,80 @@ import com.smart.ecommerce.repository.InventoryRepository;
 import com.smart.ecommerce.repository.ProductRepository;
 import com.smart.ecommerce.service.InventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 @Service
 @Profile("prod")
+@Transactional(
+        propagation = Propagation.REQUIRED,
+        rollbackFor = {
+                ResourceNotFoundException.class,
+                DuplicateResourceException.class,
+                IllegalArgumentException.class,
+                RuntimeException.class
+        }
+)
 public class InventoryServiceProd implements InventoryService {
-    @Autowired
-    private InventoryRepository inventoryRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final InventoryRepository inventoryRepository;
+
+    private final ProductRepository productRepository;
+
+    public InventoryServiceProd(InventoryRepository inventoryRepository, ProductRepository productRepository) {
+        this.inventoryRepository = inventoryRepository;
+        this.productRepository = productRepository;
+    }
 
     @Override
+    @Transactional
+    @CacheEvict(value = "inventoriesPage", allEntries = true)
     public Inventory createInventory(InventoryDTO dto) {
-        if(inventoryRepository.existsByProduct_ProductId(dto.getProductId())){
+
+        if (inventoryRepository.existsByProduct_ProductId(dto.getProductId())) {
             throw new DuplicateResourceException("This product already exists.");
         }
 
         Product product = productRepository.findById(dto.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product does not exist!"));
+
         Inventory inventory = new Inventory();
         inventory.setProduct(product);
         inventory.setQuantityAvailable(dto.getQuantityAvailable());
+
         return inventoryRepository.save(inventory);
     }
 
     @Override
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
+    @Cacheable(value = "inventoryById", key = "#inventoryId")
     public Inventory getInventoryById(UUID inventoryId) {
-        return inventoryRepository.findById(inventoryId).orElseThrow(
-                () -> new ResourceNotFoundException("Inventory not found!")
-        );
+        return inventoryRepository.findById(inventoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inventory not found!"));
     }
 
     @Override
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
+    @Cacheable(value = "inventoryByProduct", key = "#productId")
     public Inventory getInventoryByProductId(UUID productId) {
         Inventory inventory = inventoryRepository.findByProduct_ProductId(productId);
-        if(inventory == null){
+        if (inventory == null) {
             throw new ResourceNotFoundException("Inventory for this product not found!");
         }
         return inventory;
     }
 
     @Override
+    @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
+    @Cacheable(value = "inventoriesPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<InventoryResponseDTO> allInventories(Pageable pageable) {
         return inventoryRepository.findAll(pageable).map(
                 inventory -> new InventoryResponseDTO(
@@ -69,18 +97,37 @@ public class InventoryServiceProd implements InventoryService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "inventoriesPage", allEntries = true),
+            @CacheEvict(value = "inventoryById", key = "#inventoryId"),
+            @CacheEvict(value = "inventoryByProduct", key = "#dto.productId")
+    })
     public Inventory updateInventory(UUID inventoryId, InventoryDTO dto) {
+
         Inventory inventory = getInventoryById(inventoryId);
-        if(!inventory.getProduct().getProductId().equals(dto.getProductId())){
+
+        if (!inventory.getProduct().getProductId().equals(dto.getProductId())) {
             throw new IllegalArgumentException("Cannot change product of an existing inventory");
         }
+
         inventory.setQuantityAvailable(dto.getQuantityAvailable());
+
         return inventoryRepository.save(inventory);
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "inventoriesPage", allEntries = true),
+            @CacheEvict(value = "inventoryById", key = "#inventoryId")
+    })
     public void deleteInventory(UUID inventoryId) {
+
+        if (!inventoryRepository.existsById(inventoryId)) {
+            throw new ResourceNotFoundException("Inventory not found!");
+        }
+
         inventoryRepository.deleteById(inventoryId);
     }
-
 }

@@ -1,6 +1,7 @@
 package com.smart.ecommerce.service.implementation.prod;
 
 import com.smart.ecommerce.dto.request.UserDTO;
+import com.smart.ecommerce.exception.BadRequestException;
 import com.smart.ecommerce.exception.DuplicateResourceException;
 import com.smart.ecommerce.exception.ResourceNotFoundException;
 import com.smart.ecommerce.model.Role;
@@ -8,9 +9,13 @@ import com.smart.ecommerce.model.User;
 import com.smart.ecommerce.repository.UserRepository;
 import com.smart.ecommerce.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,23 +25,43 @@ import java.util.UUID;
 @Service
 @Profile("prod")
 public class UserServiceProd implements UserService {
-    @Autowired
-    private UserRepository userRepository;
+
+    private final UserRepository userRepository;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public UserServiceProd(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = {
+                    DuplicateResourceException.class,
+                    BadRequestException.class,
+                    IllegalArgumentException.class
+            }
+    )
     @Override
+    @CacheEvict(value = "usersPage", allEntries = true)
     public User createUser(UserDTO dto) {
         if(userRepository.existsByEmail(dto.getEmail())){
             throw new DuplicateResourceException("User with this email already exists!");
         }
         User user = new User();
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setFullName(dto.getFullName());
-        user.setRole(Role.valueOf(dto.getRole()));
+        user.setRole(Role.CUSTOMER);
         user.setCreatedAt(LocalDateTime.now());
         return userRepository.save(user);
     }
 
+
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "userById", key = "#userId")
     public User getUserById(UUID userId){
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -44,30 +69,46 @@ public class UserServiceProd implements UserService {
 
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "usersPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<User> getAllUsers(Pageable pageable){
         return userRepository.findAll(pageable);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public User findByEmail(String email){
         User user = userRepository.findByEmail(email).orElseThrow(
                 () -> new ResourceNotFoundException("User not found")
         );
-
         return user;
     }
+
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"userById", "usersPage"}, allEntries = true)
     public void deleteUser(UUID userId){
         if(!userRepository.existsById(userId)){
             throw new ResourceNotFoundException("User with Id " + userId + " is not found");
         }
         userRepository.deleteById(userId);
     }
+
+
     @Override
-    @Transactional
-    public User updateUser(UUID id, UserDTO userDetails) {
-        User existingUser = getUserById(id);
+    @Transactional(
+            rollbackFor = Exception.class,
+            noRollbackFor = {
+                    BadRequestException.class,
+                    IllegalArgumentException.class
+            }
+    )
+    @CachePut(value = "userById", key = "#userId")
+    @CacheEvict(value = "usersPage", allEntries = true)
+    public User updateUser(UUID userId, UserDTO userDetails) {
+        User existingUser = userRepository.findById(userId).orElseThrow(
+                () -> new ResourceNotFoundException("User not found!")
+        );
 
         if (!existingUser.getEmail().equals(userDetails.getEmail()) &&
                 userRepository.existsByEmail(userDetails.getEmail())) {
@@ -77,6 +118,7 @@ public class UserServiceProd implements UserService {
         existingUser.setFullName(userDetails.getFullName());
         existingUser.setEmail(userDetails.getEmail());
         existingUser.setRole(Role.valueOf(userDetails.getRole()));
+        existingUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
 
 
         return userRepository.save(existingUser);

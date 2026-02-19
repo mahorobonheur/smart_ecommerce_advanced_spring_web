@@ -36,33 +36,36 @@ import java.util.concurrent.Executor;
 @Profile("dev")
 public class OrderServiceDevImplementation implements OrderService {
 
-    @Autowired
-    private OrderRepository orderRepository;
+    private final OrderRepository orderRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private OrderItemService orderItemService;
+    private final OrderItemService orderItemService;
 
-    @Autowired
-    private ProductService productService;
+    private final ProductService productService;
 
-    @Autowired
-    private CartRepository cartRepository;
+    private final CartRepository cartRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
 
-    @Autowired
-    private Executor asyncExecutor;
+    private final Executor asyncExecutor;
+
+    public OrderServiceDevImplementation(OrderRepository orderRepository, UserRepository userRepository, OrderItemService orderItemService, ProductService productService, CartRepository cartRepository, ProductRepository productRepository, Executor asyncExecutor) {
+        this.orderRepository = orderRepository;
+        this.userRepository = userRepository;
+        this.orderItemService = orderItemService;
+        this.productService = productService;
+        this.cartRepository = cartRepository;
+        this.productRepository = productRepository;
+        this.asyncExecutor = asyncExecutor;
+    }
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
 
     @PostConstruct
     public void init() {
-        Stripe.apiKey = stripeApiKey; // initialize Stripe once
+        Stripe.apiKey = stripeApiKey;
     }
 
     public CompletableFuture<Map<String, Object>> checkoutAsync(UUID userId) {

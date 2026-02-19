@@ -16,11 +16,13 @@ import java.util.UUID;
 @RequestMapping("/api/cart")
 public class CartController {
 
-    @Autowired
-    private CartService cartService;
+    private final CartService cartService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public CartController(CartService cartService, UserRepository userRepository) {
+        this.cartService = cartService;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping("/{userId}")
     @Operation(summary = "Get cart by Id",
