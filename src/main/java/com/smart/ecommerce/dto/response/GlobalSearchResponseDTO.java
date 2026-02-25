@@ -11,4 +11,5 @@ public class GlobalSearchResponseDTO {
     private List<UserResponseDTO> users;
     private List<ProductResponseDTO> products;
     private List<OrderResponseDTO> orders;
+    private List<ReviewResponseDTO> reviews;
 }

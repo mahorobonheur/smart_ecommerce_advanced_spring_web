@@ -18,8 +18,12 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/reviews")
 public class ReviewController {
 
-    @Autowired
+
     private ReviewService reviewService;
+
+    public ReviewController(ReviewService reviewService) {
+        this.reviewService = reviewService;
+    }
 
     @PostMapping
     @Operation(summary = "Add review",
