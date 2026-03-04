@@ -396,3 +396,197 @@ By examining this codebase, developers can learn:
 - Domain modeling for e-commerce systems
 
 The application is ready to run and explore. Start with the development profile to see the system with sample data, then examine how different components interact to provide a complete e-commerce backend solution.
+
+
+Security Architecture
+==================
+This application implements a stateless, token-based security model using Spring Security, JWT, and OAuth2. The design follows modern backend security best practices suitable for REST and GraphQL APIs.
+
+Authentication Mechanisms
+-----------------
+1. JWT-Based Authentication (Primary)
+
+The application uses JSON Web Tokens (JWT) for securing API endpoints.
+
+Flow:
+----
+
+User logs in using credentials (/api/users/login)
+
+Server generates a signed JWT containing:
+
+- User email (subject)
+
+- User role
+
+- Expiration timestamp
+
+Client sends the token in the Authorization header:
+-------------------------
+
+Authorization: Bearer <JWT_TOKEN>
+
+A custom JwtAuthenticationFilter validates the token on every request.
+
+Key Characteristics:
+
+Stateless (no HTTP session)
+
+Signed using HMAC with a secret key
+
+Token expiration enforced (1 hour)
+
+Supports token revocation via TokenService
+
+2. OAuth2 Login (Google)
+   -----------------
+
+The system supports Google OAuth2 authentication as an alternative login mechanism.
+
+Flow:
+----
+
+- User authenticates via Google OAuth2
+
+On success:
+-------------
+
+- User profile is retrieved from Google
+
+- A local user account is created if it doesn’t exist
+
+- A JWT token is generated
+
+- User is redirected with the JWT token
+
+`/login/oauth2/code/google → OAuth2SuccessHandler → JWT issued`
+
+This allows OAuth2 users to seamlessly integrate with the same JWT-secured API.
+
+Authorization Strategy
+Role-Based Access Control (RBAC)
+
+Authorization is enforced using:
+-------------
+
+Endpoint-level rules
+
+Method-level security
+
+JWT role claims
+
+Supported roles:
+--------------
+
+CUSTOMER
+
+ADMIN
+
+Examples:
+--------
+
+Only ADMIN can manage categories
+
+Only authenticated users can place orders
+
+Only CUSTOMER can submit reviews
+
+Method-Level Security
+----------
+
+The application enables method-level authorization using:
+
+@EnableMethodSecurity
+
+This allows fine-grained access control via annotations such as:
+
+@PreAuthorize
+
+@PostAuthorize
+
+Security Configuration Highlights
+---------------------
+
+CSRF: Disabled (stateless API)
+
+Sessions: Stateless (SessionCreationPolicy.STATELESS)
+
+CORS: Explicitly configured for frontend origin
+
+HTTP Basic: Disabled
+
+Unauthorized Access: Returns structured JSON responses
+
+Security Filters
+---------------
+- JWT Authentication Filter
+
+- A custom OncePerRequestFilter:
+
+Extracts JWT from request headers
+
+Validates signature & expiration
+
+Loads user details
+
+Populates Spring Security context
+
+Invalid or revoked tokens immediately result in:
+
+{
+  "error": "Invalid or expired JWT token"
+}
+
+Authentication Event Monitoring
+---------------------------
+
+The system listens to authentication events for auditing purposes.
+
+Login Success
+
+Username
+
+Client IP address
+
+Login Failure
+
+Username
+
+Client IP
+
+Failure reason
+
+These events are logged via SecurityEventListener and can be extended for:
+------------------------------------------
+
+Alerting
+
+Rate limiting
+
+Security analytics
+
+Password Security
+-----------------------
+
+Passwords are hashed using BCrypt
+
+OAuth2 users are flagged with a placeholder password (not used for login)
+
+No plaintext passwords are stored
+
+Environment-Based Secrets
+--------------------------
+Sensitive values are externalized using environment variables:
+
+JWT secret key
+
+OAuth2 client credentials
+
+Stripe API key
+
+    This ensures:
+-------------
+
+No secrets in source control
+
+Safe multi-environment deployment
