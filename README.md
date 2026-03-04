@@ -459,7 +459,7 @@ On success:
 
 - User is redirected with the JWT token
 
-`/login/oauth2/code/google → OAuth2SuccessHandler → JWT issued`
+`    /login/oauth2/code/google → OAuth2SuccessHandler → JWT issued`
 
 This allows OAuth2 users to seamlessly integrate with the same JWT-secured API.
 
@@ -584,7 +584,7 @@ OAuth2 client credentials
 
 Stripe API key
 
-    This ensures:
+`This ensures:`
 -------------
 
 No secrets in source control
